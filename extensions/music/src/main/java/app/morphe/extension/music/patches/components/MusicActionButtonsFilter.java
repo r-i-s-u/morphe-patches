@@ -21,6 +21,7 @@ import app.morphe.extension.shared.patches.components.BufferAsciiStrings;
 import app.morphe.extension.shared.patches.components.ContextInterface;
 import app.morphe.extension.shared.patches.components.Filter;
 import app.morphe.extension.shared.patches.components.StringFilterGroup;
+import app.morphe.extension.shared.settings.BooleanSetting;
 
 @SuppressWarnings("unused")
 public final class MusicActionButtonsFilter extends Filter {
@@ -33,6 +34,22 @@ public final class MusicActionButtonsFilter extends Filter {
     public interface ButtonProtoBufferInterface {
         // Method is added during patching.
         byte[] patch_getBuffer();
+    }
+
+    private enum ActionButton {
+        LIKE_DISLIKE(Settings.HIDE_LIKE_DISLIKE_BUTTON),
+        DOWNLOAD(Settings.HIDE_DOWNLOAD_BUTTON),
+        COMMENTS(Settings.HIDE_COMMENTS_BUTTON),
+        LYRICS(Settings.HIDE_LYRICS_BUTTON),
+        SHARE(Settings.HIDE_SHARE_BUTTON),
+        RADIO(Settings.HIDE_RADIO_BUTTON),
+        SAVE(Settings.HIDE_SAVE_BUTTON);
+
+        final BooleanSetting setting;
+
+        ActionButton(BooleanSetting setting) {
+            this.setting = setting;
+        }
     }
 
     private static final String VIDEO_ACTION_BAR_PREFIX = "video_action_bar.e";
@@ -171,12 +188,13 @@ public final class MusicActionButtonsFilter extends Filter {
             for (int i = treeNodeResultList.size() - 1; i >= 0; i--) {
                 byte[] buttonProto = extractButtonProto(treeNodeResultList.get(i));
                 if (buttonProto == null) continue;
-                if (!shouldHideButton(buttonProto)) continue;
+                ActionButton button = classify(buttonProto);
+                if (!button.setting.get()) continue;
                 // Music bakes the row's leading padding into item[0], so physically removing
                 // the first entry collapses the whole row against the screen edge. Keep it in
                 // the list and let isFiltered() do a visual-only hide instead - the empty cell
                 // preserves the padding.
-                if (i == 0 && isLikeDislikeButton(buttonProto)) continue;
+                if (i == 0 && button == ActionButton.LIKE_DISLIKE) continue;
                 treeNodeResultList.remove(i);
             }
         } catch (Exception ex) {
@@ -241,7 +259,8 @@ public final class MusicActionButtonsFilter extends Filter {
         return null;
     }
 
-    private static boolean shouldHideButton(byte[] buffer) {
+    @NonNull
+    private static ActionButton classify(byte[] buffer) {
         String contents = new String(buffer, StandardCharsets.ISO_8859_1);
         // Order matters - the more-specific `segmented_like_dislike_button` and
         // `music_download_button` come before `like_button` / `download_button` so the
@@ -249,40 +268,28 @@ public final class MusicActionButtonsFilter extends Filter {
         if (contents.contains(SEGMENTED_LIKE_DISLIKE_MARKER)
                 || contents.contains(LIKE_BUTTON_MARKER)
                 || contents.contains(DISLIKE_BUTTON_MARKER)) {
-            return Settings.HIDE_LIKE_DISLIKE_BUTTON.get();
+            return ActionButton.LIKE_DISLIKE;
         }
         if (contents.contains(MUSIC_DOWNLOAD_MARKER)
                 || contents.contains(DOWNLOAD_MARKER)
                 || contents.contains(DOWNLOAD_PROTO_MARKER)) {
-            return Settings.HIDE_DOWNLOAD_BUTTON.get();
+            return ActionButton.DOWNLOAD;
         }
-        if (contents.contains(COMMENTS_MARKER)) return Settings.HIDE_COMMENTS_BUTTON.get();
-        if (contents.contains(LYRICS_MARKER)) return Settings.HIDE_LYRICS_BUTTON.get();
-        if (contents.contains(SHARE_MARKER)) return Settings.HIDE_SHARE_BUTTON.get();
-        if (contents.contains(RADIO_MARKER)) return Settings.HIDE_RADIO_BUTTON.get();
+        if (contents.contains(COMMENTS_MARKER)) return ActionButton.COMMENTS;
+        if (contents.contains(LYRICS_MARKER)) return ActionButton.LYRICS;
+        if (contents.contains(SHARE_MARKER)) return ActionButton.SHARE;
+        if (contents.contains(RADIO_MARKER)) return ActionButton.RADIO;
         // Fallback for buttons that are disabled for this track: no endpoint id is present,
         // so classify by the button's own icon which sits in the buffer head, before the
         // shared icon catalogue.
         String head = contents.length() > ICON_SCAN_HEAD_LIMIT
                 ? contents.substring(0, ICON_SCAN_HEAD_LIMIT) : contents;
         if (head.contains(THUMB_UP_ICON) || head.contains(THUMB_DOWN_ICON)) {
-            return Settings.HIDE_LIKE_DISLIKE_BUTTON.get();
+            return ActionButton.LIKE_DISLIKE;
         }
-        if (head.contains(COMMENTS_ICON)) return Settings.HIDE_COMMENTS_BUTTON.get();
-        if (head.contains(LYRICS_ICON)) return Settings.HIDE_LYRICS_BUTTON.get();
+        if (head.contains(COMMENTS_ICON)) return ActionButton.COMMENTS;
+        if (head.contains(LYRICS_ICON)) return ActionButton.LYRICS;
         // Save button has no unique endpoint marker of its own; it's the fall-through.
-        return Settings.HIDE_SAVE_BUTTON.get();
-    }
-
-    private static boolean isLikeDislikeButton(byte[] buffer) {
-        String contents = new String(buffer, StandardCharsets.ISO_8859_1);
-        if (contents.contains(SEGMENTED_LIKE_DISLIKE_MARKER)
-                || contents.contains(LIKE_BUTTON_MARKER)
-                || contents.contains(DISLIKE_BUTTON_MARKER)) {
-            return true;
-        }
-        String head = contents.length() > ICON_SCAN_HEAD_LIMIT
-                ? contents.substring(0, ICON_SCAN_HEAD_LIMIT) : contents;
-        return head.contains(THUMB_UP_ICON) || head.contains(THUMB_DOWN_ICON);
+        return ActionButton.SAVE;
     }
 }
