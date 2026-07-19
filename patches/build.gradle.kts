@@ -22,6 +22,8 @@ dependencies {
 
     implementation(libs.morphe.patches.library)
 
+    implementation("com.github.TeamNewPipe:NewPipeExtractor:v0.26.3")
+
     patchListGeneratorClasspath(libs.gson)
 
     // Android API stubs defined here.
