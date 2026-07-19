@@ -17,6 +17,7 @@ import app.morphe.patches.youtube.shared.Constants.COMPATIBILITY_YOUTUBE
 import app.morphe.patches.youtube.video.information.videoInformationPatch
 import app.morphe.util.ResourceGroup
 import app.morphe.util.copyResources
+import org.w3c.dom.Element
 
 private val downloadsResourcePatch = resourcePatch {
     dependsOn(
@@ -48,8 +49,18 @@ private val downloadsResourcePatch = resourcePatch {
                 "morphe_yt_download_button_bold.xml",
             )
         )
-    }
+        
+        document("AndroidManifest.xml").use { document ->
+            val application = document.getElementsByTagName("application").item(0) as Element
 
+            val activity = document.createElement("activity").apply {
+                  setAttribute("android:name", "app.morphe.extension.youtube.patches.downloader.DownloadActivity")
+                  setAttribute("android:exported", "false")
+            }
+ 
+             application.appendChild(activity)
+         }
+     }
     finalize {
         addTopControl("downloads",
             "@+id/morphe_external_download_button",
