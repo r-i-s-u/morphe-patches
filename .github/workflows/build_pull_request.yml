@@ -39,10 +39,18 @@ jobs:
           archive: false
           path: patches/build/libs
 
+      - name: Get version
+        id: version
+        run: |
+          FILE=$(basename patches/build/libs/patches-*.mpp)
+          VERSION=${FILE#patches-}
+          VERSION=${VERSION%.mpp}
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          files: patches-*.mpp
+          files: patches/build/libs/patches-*.mpp
         env:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
