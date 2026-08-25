@@ -2,7 +2,7 @@
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -16,6 +16,8 @@ Second \"item\" text"</string>
 
 -->
 <resources>
+  <string name="reddit_privacy_policy">Политика приватности Редита</string>
+  <string name="morphe_google_signin_not_available_toast">Гугл пријава није доступна. Користите имејл за пријаву</string>
   <string name="morphe_screen_ads_title">Огласи</string>
   <string name="morphe_hide_post_ads_title">Сакриј рекламе у фиду</string>
   <string name="morphe_hide_comment_ads_title">Сакриј рекламе у коментарима</string>
@@ -32,9 +34,19 @@ Second \"item\" text"</string>
   <string name="morphe_hide_about_shelf_title">Sakrij полицу „О нама”</string>
   <string name="morphe_hide_resources_shelf_title">Sakrij полицу „Ресурси”</string>
   <string name="morphe_screen_layout_title">Изглед</string>
+  <string name="morphe_custom_font_title">Прилагођени фонт</string>
+  <string name="morphe_custom_font_summary">Учитајте прилагођени TTF или OTF фонт датотеку са путање испод. Омогућавање овог опције искључује и присилни системски фонт.</string>
+  <string name="morphe_custom_font_file_path_title">Датотека прилагођеног фонта</string>
+  <string name="morphe_custom_font_file_path_summary">Додирните да бисте одабрали TTF или OTF фонт датотеку</string>
+  <string name="morphe_custom_font_selected_font">Изабрани фонт - %s</string>
+  <string name="morphe_custom_font_pick_file_first">Прво изаберите прилагођену фонт датотеку.</string>
+  <string name="morphe_custom_font_invalid_file">Молимо вас да изаберете .ttf или .otf фонт датотеку.</string>
+  <string name="morphe_custom_font_failed_to_load">Неуспешно учитавање прилагођеног фонта. Изаберите другу датотеку.</string>
   <string name="morphe_disable_modern_home_title">Онемогући модерни кориснички интерфејс</string>
   <string name="morphe_disable_screenshot_popup_title">Искаљује дијалог за снимак екрана</string>
   <string name="morphe_disable_screenshot_popup_summary">Искаљује дијалог који се појављује приликом снимања снимка екрана</string>
+  <string name="morphe_force_system_font_title">Форсирај системски фонт</string>
+  <string name="morphe_force_system_font_summary">Користите системски фонт уређаја уместо Reddit Sans или Roboto. Омогућавање овог опције искључује и прилагођени фонт.</string>
   <string name="morphe_hide_ask_button_title">Сакриј дугме „Захтев”</string>
   <string name="morphe_hide_ask_button_summary">Скрива дугме „Захтев” у траци прегледа.</string>
   <string name="morphe_hide_communities_shelf_title">Сакриј полицу заједница</string>

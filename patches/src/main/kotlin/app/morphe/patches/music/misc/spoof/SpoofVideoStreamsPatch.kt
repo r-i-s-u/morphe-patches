@@ -1,11 +1,12 @@
 package app.morphe.patches.music.misc.spoof
 
 import app.morphe.patches.music.misc.extension.sharedExtensionPatch
-import app.morphe.patches.music.misc.playservice.is_7_16_or_greater
 import app.morphe.patches.music.misc.playservice.is_7_33_or_greater
 import app.morphe.patches.music.misc.playservice.is_8_11_or_greater
 import app.morphe.patches.music.misc.playservice.is_8_15_or_greater
+import app.morphe.patches.music.misc.playservice.is_8_35_or_greater
 import app.morphe.patches.music.misc.playservice.is_8_40_or_greater
+import app.morphe.patches.music.misc.playservice.is_9_12_or_greater
 import app.morphe.patches.music.misc.playservice.is_9_19_or_greater
 import app.morphe.patches.music.misc.playservice.is_9_24_or_greater
 import app.morphe.patches.music.misc.playservice.versionCheckPatch
@@ -17,19 +18,17 @@ import app.morphe.patches.shared.misc.settings.preference.ListPreference
 import app.morphe.patches.shared.misc.settings.preference.NonInteractivePreference
 import app.morphe.patches.shared.misc.settings.preference.PreferenceScreenPreference
 import app.morphe.patches.shared.misc.settings.preference.SwitchPreference
-import app.morphe.patches.shared.misc.settings.preference.TextPreference
 import app.morphe.patches.shared.misc.spoof.spoofVideoStreamsPatch
 
 val spoofVideoStreamsPatch = spoofVideoStreamsPatch(
     extensionClass = "Lapp/morphe/extension/music/patches/spoof/SpoofVideoStreamsPatch;",
     mainActivityOnCreateFingerprint = MusicActivityOnCreateFingerprint,
-    fixMediaFetchHotConfig = { is_7_16_or_greater },
     fixMediaFetchHotConfigAlternative = { is_8_11_or_greater && !is_8_15_or_greater },
     fixParsePlaybackResponseFeatureFlag = { is_7_33_or_greater && !is_9_24_or_greater },
     fixMediaSessionFeatureFlag = { is_8_40_or_greater },
     fixReelItemWatchResponseFeatureFlag = { false },
-    hookAccountIdentity = { false },
     useNewRequestBuilderFingerprint = { is_9_19_or_greater },
+    restoreMissingCuepointMethod = { is_8_35_or_greater && !is_9_12_or_greater },
 
     block = {
         dependsOn(
@@ -55,12 +54,6 @@ val spoofVideoStreamsPatch = spoofVideoStreamsPatch(
                         tag = "app.morphe.extension.music.settings.preference.SpoofVideoStreamsSignInPreference",
                         selectable = true,
                     ),
-                    SwitchPreference(
-                        "morphe_spoof_video_streams_disable_player_js_update",
-                        summary = true,
-                        tag = "app.morphe.extension.shared.settings.preference.BulletPointSwitchPreference",
-                    ),
-                    TextPreference("morphe_spoof_video_streams_player_js_hash_value"),
                 )
             )
         )

@@ -1,7 +1,20 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.patches.shared.misc.spoof
 
 import app.morphe.patcher.Fingerprint
+import app.morphe.patcher.InstructionLocation.MatchAfterImmediately
+import app.morphe.patcher.InstructionLocation.MatchAfterWithin
 import app.morphe.patcher.OpcodesFilter
+import app.morphe.patcher.fieldAccess
 import app.morphe.patcher.literal
 import app.morphe.patcher.methodCall
 import app.morphe.patcher.opcode
@@ -12,6 +25,17 @@ import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+
+private const val STREAMING_DATA_OUTER_CLASS =
+    $$"Lcom/google/protos/youtube/api/innertube/StreamingDataOuterClass$StreamingData;"
+
+internal object CuepointListFingerprint : Fingerprint(
+    definingClass = "Lcom/google/android/apps/youtube/proto/streaming/CuepointListOuterClass\$CuepointList;",
+    name = "<clinit>",
+    filters = listOf(
+        methodCall(name = "registerDefaultInstance")
+    )
+)
 
 internal object BuildInitPlaybackRequestFingerprint : Fingerprint(
     returnType = $$"Lorg/chromium/net/UrlRequest$Builder;",
@@ -95,25 +119,113 @@ internal object BuildRequestFingerprint : Fingerprint(
         val parameterTypesSize = parameterTypes.size
         (parameterTypesSize == 6 || parameterTypesSize == 7 || parameterTypesSize == 8) &&
                 parameterTypes[1] == "Ljava/util/Map;" // URL headers.
-                && indexOfNewUrlRequestBuilderInstruction(methodDef) >= 0
+                && indexOfNewUrlRequestBuilderExecutorInstruction(methodDef) >= 0
     }
 )
 
+private object CreateStreamingDataParentFingerprint : Fingerprint(
+    strings = listOf("Invalid playback type; streaming data is not playable")
+)
+
 internal object CreateStreamingDataFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.CONSTRUCTOR),
+    classFingerprint = CreateStreamingDataParentFingerprint,
+    name = "<init>",
     parameters = listOf("L"),
-    filters = OpcodesFilter.opcodesToFilters(
-        Opcode.IPUT_OBJECT,
-        Opcode.IGET_OBJECT,
-        Opcode.IF_NEZ,
-        Opcode.SGET_OBJECT,
-        Opcode.IPUT_OBJECT,
-    ),
-    custom = { _, classDef ->
-        classDef.fields.any { field ->
-            field.name == "a" && field.type.endsWith($$"/StreamingDataOuterClass$StreamingData;")
-        }
-    }
+    filters = listOf(
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            type = STREAMING_DATA_OUTER_CLASS
+        ),
+        fieldAccess(
+            opcode = Opcode.IPUT_OBJECT,
+            definingClass = "this",
+            type = STREAMING_DATA_OUTER_CLASS,
+            location = MatchAfterWithin(7)
+        ),
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            location = MatchAfterImmediately()
+        ),
+        opcode(
+            opcode = Opcode.IF_NEZ,
+            location = MatchAfterImmediately()
+        ),
+        fieldAccess(
+            opcode = Opcode.SGET_OBJECT,
+            location = MatchAfterImmediately()
+        ),
+        fieldAccess(
+            opcode = Opcode.IPUT_OBJECT,
+            definingClass = "this",
+            location = MatchAfterImmediately()
+        ),
+        opcode(Opcode.AND_INT_LIT8),
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            location = MatchAfterWithin(5)
+        )
+    )
+)
+
+internal fun abrStateDataFingerprint(playerConfigClass: String) = object : Fingerprint(
+    returnType = "J",
+    filters = listOf(
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            type = playerConfigClass
+        ),
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            definingClass = playerConfigClass,
+            location = MatchAfterImmediately()
+        ),
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            location = MatchAfterWithin(5)
+        ),
+        string("/videoplayback"),
+        string("AbrStateDataSpec: Unexpected http body.")
+    )
+) {}
+
+
+internal object PlayerConfigBuilderFingerprint : Fingerprint(
+    returnType = "Lcom/google/protobuf/MessageLite;",
+    filters = listOf(
+        string("com.google.android.libraries.youtube.innertube.pref.player_config_supplier"),
+        methodCall(
+            opcode = Opcode.INVOKE_STATIC,
+            name = "decode",
+            returnType = "[B"
+        ),
+        methodCall(
+            opcode = Opcode.INVOKE_VIRTUAL,
+            name = "createBuilder",
+            parameters = listOf(),
+            location = MatchAfterWithin(5)
+        ),
+        methodCall(
+            opcode = Opcode.INVOKE_STATIC,
+            smali = "Lcom/google/protobuf/ExtensionRegistryLite;->getGeneratedRegistry()Lcom/google/protobuf/ExtensionRegistryLite;",
+            location = MatchAfterWithin(5)
+        ),
+        methodCall(
+            opcode = Opcode.INVOKE_VIRTUAL,
+            name = "mergeFrom",
+            parameters = listOf("[B", "Lcom/google/protobuf/ExtensionRegistryLite;"),
+            location = MatchAfterWithin(5)
+        ),
+        opcode(
+            opcode = Opcode.CHECK_CAST,
+            location = MatchAfterWithin(3)
+        ),
+        methodCall(
+            opcode = Opcode.INVOKE_VIRTUAL,
+            name = "build",
+            parameters = listOf(),
+            location = MatchAfterWithin(3)
+        )
+    )
 )
 
 internal object BuildMediaDataSourceFingerprint : Fingerprint(
@@ -159,16 +271,6 @@ internal object NerdsStatsVideoFormatBuilderFingerprint : Fingerprint(
     )
 )
 
-// Feature flag that turns on Platypus programming language code compiled to native C++.
-// This code appears to replace the player config after the streams are loaded.
-// Flag is present in YouTube 19.34, but is missing Platypus stream replacement code until 19.43.
-// Flag and Platypus code is also present in newer versions of YouTube Music.
-internal object MediaFetchHotConfigFingerprint : Fingerprint(
-    filters = listOf(
-        literal(45645570L)
-    )
-)
-
 // YT 20.10+, YT Music 8.11 - 8.14.
 // Flag is missing in YT Music 8.15+, and it is not known if a replacement flag/feature exists.
 internal object MediaFetchHotConfigAlternativeFingerprint : Fingerprint(
@@ -187,26 +289,15 @@ internal object PlaybackStartDescriptorFeatureFlagFingerprint : Fingerprint(
     )
 )
 
-internal object MediaSessionFeatureFlagFingerprint : Fingerprint(
-    parameters = listOf(),
-    returnType = "Z",
-    filters = listOf(
-        literal(45640404L)
-    )
-)
-
 // Feature flag that causes Shorts content to freeze and fail to load when scrolling.
 // Flag does not seem to affect Shorts if spoofing is off.
 internal object ReelItemWatchResponseFeatureFlagFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "Z",
-    parameters = listOf(),
     filters = listOf(
         literal(45638126L)
     )
 )
 
-internal fun indexOfNewUrlRequestBuilderInstruction(method: Method) = method.indexOfFirstInstruction {
+internal fun indexOfNewUrlRequestBuilderExecutorInstruction(method: Method) = method.indexOfFirstInstruction {
     val reference = getReference<MethodReference>()
     opcode == Opcode.INVOKE_VIRTUAL && reference?.definingClass == "Lorg/chromium/net/CronetEngine;"
             && reference.name == "newUrlRequestBuilder"

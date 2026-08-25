@@ -13,7 +13,8 @@ import android.content.Context;
 import android.preference.SwitchPreference;
 import android.util.AttributeSet;
 
-import java.util.List;import app.morphe.extension.shared.settings.SharedYouTubeSettings;
+import java.util.List;
+import app.morphe.extension.shared.settings.SharedYouTubeSettings;
 import app.morphe.extension.shared.spoof.ClientType;
 import app.morphe.extension.shared.spoof.SpoofVideoStreamsPatch;
 
@@ -24,9 +25,12 @@ public class ForceAVCSwitchPreference extends SwitchPreference {
     private static final boolean available = !SpoofVideoStreamsPatch.isPatchIncluded()
             || !SharedYouTubeSettings.SPOOF_VIDEO_STREAMS.get() || List.of(
             ClientType.ANDROID_CREATOR,
-            ClientType.ANDROID_VR_1_65,
-            ClientType.ANDROID_VR_1_64,
-            ClientType.VISIONOS).contains(SpoofVideoStreamsPatch.getPreferredClient());
+            ClientType.ANDROID_VR_DASH,
+            ClientType.ANDROID_VR_SABR,
+            ClientType.ANDROID_XR_DASH,
+            ClientType.ANDROID_XR_SABR,
+            ClientType.VISIONOS_1_02,
+            ClientType.VISIONOS_1_03).contains(SpoofVideoStreamsPatch.getPreferredClient());
 
     {
         if (!available) {

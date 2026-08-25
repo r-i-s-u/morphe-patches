@@ -4,6 +4,7 @@
  *
  * See the included NOTICE file for GPLv3 Section 7 terms that apply to this code.
  */
+
 package app.morphe.extension.reddit.settings.preference.categories;
 
 import static app.morphe.extension.shared.StringRef.str;
@@ -13,6 +14,8 @@ import android.preference.PreferenceScreen;
 
 import app.morphe.extension.reddit.patches.DisableModernHomePatch;
 import app.morphe.extension.reddit.patches.DisableScreenshotPopupPatch;
+import app.morphe.extension.reddit.patches.CustomFontPatch;
+import app.morphe.extension.reddit.patches.ForceSystemFontPatch;
 import app.morphe.extension.reddit.patches.HideAskButtonPatch;
 import app.morphe.extension.reddit.patches.HideCommunitiesShelf;
 import app.morphe.extension.reddit.patches.HideTrendingShelvesPatch;
@@ -20,6 +23,9 @@ import app.morphe.extension.reddit.patches.RemoveSubRedditDialogPatch;
 import app.morphe.extension.reddit.patches.ShowViewCountPatch;
 import app.morphe.extension.reddit.settings.Settings;
 import app.morphe.extension.reddit.settings.preference.BooleanSettingPreference;
+import app.morphe.extension.reddit.settings.preference.CustomFontFilePreference;
+import app.morphe.extension.reddit.settings.preference.CustomFontTogglePreference;
+import app.morphe.extension.reddit.settings.preference.ForceSystemFontPreference;
 
 @SuppressWarnings("deprecation")
 public class LayoutPreferenceCategory extends ConditionalPreferenceCategory {
@@ -32,6 +38,8 @@ public class LayoutPreferenceCategory extends ConditionalPreferenceCategory {
     public boolean getSettingsStatus() {
         return DisableModernHomePatch.isPatchIncluded() ||
                 DisableScreenshotPopupPatch.isPatchIncluded() ||
+                CustomFontPatch.isPatchIncluded() ||
+                ForceSystemFontPatch.isPatchIncluded() ||
                 HideAskButtonPatch.isPatchIncluded() ||
                 HideCommunitiesShelf.isPatchIncluded() ||
                 HideTrendingShelvesPatch.isPatchIncluded() ||
@@ -40,6 +48,14 @@ public class LayoutPreferenceCategory extends ConditionalPreferenceCategory {
 
     @Override
     public void addPreferences(Context context) {
+        if (CustomFontPatch.isPatchIncluded()) {
+            addPreference(new CustomFontTogglePreference(context));
+            addPreference(new CustomFontFilePreference(
+                    context,
+                    Settings.CUSTOM_FONT_FILE_PATH
+            ));
+        }
+
         if (DisableModernHomePatch.isPatchIncluded()) {
             addPreference(new BooleanSettingPreference(
                     context,
@@ -52,6 +68,10 @@ public class LayoutPreferenceCategory extends ConditionalPreferenceCategory {
                     context,
                     Settings.DISABLE_SCREENSHOT_POPUP
             ));
+        }
+
+        if (ForceSystemFontPatch.isPatchIncluded()) {
+            addPreference(new ForceSystemFontPreference(context));
         }
 
         if (HideAskButtonPatch.isPatchIncluded()) {

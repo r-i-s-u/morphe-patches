@@ -2,7 +2,7 @@
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -49,6 +49,7 @@ Second \"item\" text"</string>
   <string name="morphe_settings_search_empty_history_summary">要保存搜索历史，请键入搜索查询并按回车键</string>
   <string name="morphe_settings_search_history_title">显示设置搜索历史记录</string>
   <string name="morphe_show_menu_icons_title">显示Morphe设置图标</string>
+  <string name="morphe_settings_menu_copy_path">已复制：%s</string>
   <string name="morphe_language_title">Morphe 语言</string>
   <string name="morphe_language_user_dialog_message">"某些语言的翻译可能缺失或不完整。
 
@@ -97,7 +98,7 @@ Second \"item\" text"</string>
   <string name="morphe_debug_export_logs_file">导出到文件</string>
   <string name="morphe_debug_export_logs_success">调试日志导出成功</string>
   <string name="morphe_debug_export_logs_failed">导出调试日志失败</string>
-  <string name="morphe_debug_logs_search_hint">搜索调试日志...</string>
+  <string name="morphe_debug_logs_search_hint">搜索调试日志…</string>
   <string name="morphe_debug_export_logs_clear">清除</string>
   <string name="morphe_debug_logs_disabled">调试日志记录已禁用</string>
   <string name="morphe_debug_logs_none_found">未找到调试日志</string>
@@ -108,7 +109,7 @@ Second \"item\" text"</string>
   <string name="morphe_debug_feature_flags_manager_summary">管理布尔功能标志</string>
   <string name="morphe_debug_feature_flags_manager_active_header">活动功能标志 (%d)</string>
   <string name="morphe_debug_feature_flags_manager_blocked_header">已阻止的功能标志 (%d)</string>
-  <string name="morphe_debug_feature_flags_manager_search_hint">搜索功能标志...</string>
+  <string name="morphe_debug_feature_flags_manager_search_hint">搜索功能标志…</string>
   <string name="morphe_debug_feature_flags_manager_toast_saved">功能标志已保存</string>
   <string name="morphe_debug_feature_flags_manager_toast_reset">功能标志已重置</string>
   <string name="morphe_debug_feature_flags_manager_toast_copied">功能标志已复制到剪贴板</string>

@@ -7,6 +7,7 @@
 
 package app.morphe.extension.music.patches.scrobbling.lastfm;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.InputStreamReader;
@@ -22,13 +23,15 @@ import java.util.List;
 import java.util.Map;
 
 import app.morphe.extension.music.patches.scrobbling.ScrobbleManager;
+import app.morphe.extension.music.settings.Settings;
 import app.morphe.extension.shared.Logger;
+import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.requests.Requester;
 
 public class LastFM {
     private static final String BASE_URL = "https://ws.audioscrobbler.com/2.0/";
-    private static final String USER_AGENT = "YT Music Morphe (https://github.com/MorpheApp/morphe-patches)";
-    
+    private static final String USER_AGENT = "Morphe/" + Utils.getPatchesReleaseVersion() + " (YTMusic/" + Utils.getAppVersionName() + ")";
+
     public static final String API_KEY = "986d00852eea80eda8b2930e0abf5c46";
     public static final String SECRET = "1d802c749ccec53103400582fcaebd01";
 
@@ -84,6 +87,7 @@ public class LastFM {
 
         StringBuilder postData = new StringBuilder();
         for (Map.Entry<String, String> entry : params.entrySet()) {
+            //noinspection SizeReplaceableByIsEmpty
             if (postData.length() != 0) postData.append('&');
             postData.append(URLEncoder.encode(entry.getKey(), "UTF-8"));
             postData.append('=');
@@ -183,8 +187,8 @@ public class LastFM {
                 Logger.printException(() -> "Last.fm API error during updateNowPlaying", ex);
                 if (ex.getErrorCode() == 9) {
                     Logger.printInfo(() -> "Last.fm: Session key is invalid. Logging out.");
-                    app.morphe.extension.music.settings.Settings.LASTFM_SESSION_KEY.resetToDefault();
-                    app.morphe.extension.music.settings.Settings.LASTFM_USERNAME.resetToDefault();
+                    Settings.LASTFM_SESSION_KEY.resetToDefault();
+                    Settings.LASTFM_USERNAME.resetToDefault();
                 }
             } catch (Exception ex) {
                 Logger.printException(() -> "Failed to update Now Playing", ex);
@@ -198,6 +202,7 @@ public class LastFM {
             if (root.has("scrobbles")) {
                 JSONObject scrobbles = root.getJSONObject("scrobbles");
                 JSONObject attr = scrobbles.optJSONObject("@attr");
+                @SuppressWarnings("unused")
                 int accepted = attr != null ? attr.optInt("accepted", 0) : 0;
                 int ignored = attr != null ? attr.optInt("ignored", 0) : 0;
 
@@ -208,8 +213,7 @@ public class LastFM {
                         JSONObject scrobble = null;
                         if (scrobbleObj instanceof JSONObject) {
                             scrobble = (JSONObject) scrobbleObj;
-                        } else if (scrobbleObj instanceof org.json.JSONArray) {
-                            org.json.JSONArray scrobbleArray = (org.json.JSONArray) scrobbleObj;
+                        } else if (scrobbleObj instanceof JSONArray scrobbleArray) {
                             if (scrobbleArray.length() > 0) {
                                 scrobble = scrobbleArray.optJSONObject(0);
                             }
@@ -252,8 +256,8 @@ public class LastFM {
                 Logger.printException(() -> "Last.fm API error during scrobble", ex);
                 if (ex.getErrorCode() == 9) {
                     Logger.printInfo(() -> "Last.fm: Session key is invalid. Logging out.");
-                    app.morphe.extension.music.settings.Settings.LASTFM_SESSION_KEY.resetToDefault();
-                    app.morphe.extension.music.settings.Settings.LASTFM_USERNAME.resetToDefault();
+                    Settings.LASTFM_SESSION_KEY.resetToDefault();
+                    Settings.LASTFM_USERNAME.resetToDefault();
                 }
             } catch (Exception ex) {
                 Logger.printException(() -> "Failed to scrobble track", ex);
@@ -278,8 +282,8 @@ public class LastFM {
                 Logger.printException(() -> "Last.fm API error during love", ex);
                 if (ex.getErrorCode() == 9) {
                     Logger.printInfo(() -> "Last.fm: Session key is invalid. Logging out.");
-                    app.morphe.extension.music.settings.Settings.LASTFM_SESSION_KEY.resetToDefault();
-                    app.morphe.extension.music.settings.Settings.LASTFM_USERNAME.resetToDefault();
+                    Settings.LASTFM_SESSION_KEY.resetToDefault();
+                    Settings.LASTFM_USERNAME.resetToDefault();
                 }
             } catch (Exception e) {
                 Logger.printException(() -> "Last.fm: Failed to love track", e);
@@ -304,8 +308,8 @@ public class LastFM {
                 Logger.printException(() -> "Last.fm API error during unlove", ex);
                 if (ex.getErrorCode() == 9) {
                     Logger.printInfo(() -> "Last.fm: Session key is invalid. Logging out.");
-                    app.morphe.extension.music.settings.Settings.LASTFM_SESSION_KEY.resetToDefault();
-                    app.morphe.extension.music.settings.Settings.LASTFM_USERNAME.resetToDefault();
+                    Settings.LASTFM_SESSION_KEY.resetToDefault();
+                    Settings.LASTFM_USERNAME.resetToDefault();
                 }
             } catch (Exception e) {
                 Logger.printException(() -> "Last.fm: Failed to unlove track", e);

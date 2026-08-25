@@ -94,6 +94,7 @@ private val hideShortsComponentsResourcePatch = resourcePatch {
                     //SwitchPreference("morphe_hide_shorts_like_fountain"),
                     SwitchPreference("morphe_hide_shorts_like_button"),
                     SwitchPreference("morphe_hide_shorts_comments_button"),
+                    SwitchPreference("morphe_hide_shorts_save_button"),
                     SwitchPreference("morphe_hide_shorts_share_button"),
                     SwitchPreference("morphe_hide_shorts_remix_button"),
                     SwitchPreference("morphe_hide_shorts_sound_button"),
@@ -219,13 +220,13 @@ val hideShortsComponentsPatch = bytecodePatch(
         // Set the pivotBar view.
         SetPivotBarVisibilityFingerprint.let { result ->
             result.method.apply {
-                val insertIndex = result.instructionMatches.last().index
-                val viewRegister = getInstruction<OneRegisterInstruction>(insertIndex - 1).registerA
+                val index = result.instructionMatches.first().index
+                val register = getInstruction<OneRegisterInstruction>(index).registerA
 
                 addInstruction(
-                    insertIndex,
-                    "invoke-static {v$viewRegister}," +
-                            "$EXTENSION_FILTER->setPivotBar(Lcom/google/android/libraries/youtube/rendering/ui/pivotbar/PivotBar;)V",
+                    index + 1,
+                    "invoke-static { v$register }, $EXTENSION_FILTER->" +
+                            "setPivotBar(Lcom/google/android/libraries/youtube/rendering/ui/pivotbar/PivotBar;)V",
                 )
             }
         }

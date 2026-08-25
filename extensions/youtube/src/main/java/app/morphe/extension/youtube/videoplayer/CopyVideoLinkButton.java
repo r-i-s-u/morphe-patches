@@ -11,16 +11,14 @@
 package app.morphe.extension.youtube.videoplayer;
 
 import static app.morphe.extension.shared.StringRef.str;
-import static app.morphe.extension.youtube.patches.LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS;
 
 import android.os.Build;
 import android.view.View;
 
-import androidx.annotation.Nullable;
-
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.SharedYouTubeSettings;
+import app.morphe.extension.youtube.patches.LegacyPlayerControlsPatch;
 import app.morphe.extension.youtube.patches.VideoInformation;
 import app.morphe.extension.youtube.settings.Settings;
 
@@ -28,15 +26,12 @@ import app.morphe.extension.youtube.settings.Settings;
 public class CopyVideoLinkButton {
     private static final boolean COPY_VIDEO_LINK_WITH_TIMESTAMP_BUTTON = Settings.COPY_VIDEO_LINK_WITH_TIMESTAMP_BUTTON.get();
 
-    @Nullable
-    private static LegacyPlayerControlButton legacy;
-
     /**
      * Injection point.
      */
     public static void initializeButton(View controlsView) {
         try {
-            if (RESTORE_OLD_PLAYER_BUTTONS || !Settings.COPY_VIDEO_LINK_BUTTON.get()) {
+            if (LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS || !Settings.COPY_VIDEO_LINK_BUTTON.get()) {
                 return;
             }
 
@@ -59,18 +54,18 @@ public class CopyVideoLinkButton {
      */
     public static void initializeLegacyButton(View controlsView) {
         try {
-            if (!RESTORE_OLD_PLAYER_BUTTONS) {
+            if (!LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS) {
                 return;
             }
 
-            legacy = new LegacyPlayerControlButton(
+            new LegacyPlayerControlButton(
                     controlsView,
                     "morphe_copy_video_link_button",
                     null,
                     COPY_VIDEO_LINK_WITH_TIMESTAMP_BUTTON
                             ? "morphe_yt_copy_timestamp"
                             : "morphe_yt_copy",
-                    Settings.COPY_VIDEO_LINK_BUTTON::get,
+                    Settings.COPY_VIDEO_LINK_BUTTON,
                     view -> copyLink(COPY_VIDEO_LINK_WITH_TIMESTAMP_BUTTON),
                     view -> {
                         copyLink(!COPY_VIDEO_LINK_WITH_TIMESTAMP_BUTTON);
@@ -80,27 +75,6 @@ public class CopyVideoLinkButton {
         } catch (Exception ex) {
             Logger.printException(() -> "initializeButton failure", ex);
         }
-    }
-
-    /**`
-     * injection point.
-     */
-    public static void setVisibilityNegatedImmediate() {
-        if (legacy != null) legacy.setVisibilityNegatedImmediate();
-    }
-
-    /**
-     * injection point.
-     */
-    public static void setVisibilityImmediate(boolean visible) {
-        if (legacy != null) legacy.setVisibilityImmediate(visible);
-    }
-
-    /**
-     * injection point.
-     */
-    public static void setVisibility(boolean visible, boolean animated) {
-        if (legacy != null) legacy.setVisibility(visible, animated);
     }
 
     public static void copyLink(boolean withTimestamp) {
@@ -132,7 +106,7 @@ public class CopyVideoLinkButton {
             final long hour = currentVideoTimeInSeconds / (60 * 60);
             final long minute = (currentVideoTimeInSeconds / 60) % 60;
             final long second = currentVideoTimeInSeconds % 60;
-            builder.append("?t=");
+            builder.append(builder.indexOf("?") >= 0 ? "&t=" : "?t=");
             if (hour > 0) {
                 builder.append(hour).append("h");
             }

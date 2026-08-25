@@ -10,8 +10,6 @@
 
 package app.morphe.extension.youtube.videoplayer;
 
-import static app.morphe.extension.youtube.patches.LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS;
-
 import android.view.View;
 import android.widget.TextView;
 
@@ -22,6 +20,7 @@ import java.text.DecimalFormat;
 
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.youtube.patches.LegacyPlayerControlsPatch;
 import app.morphe.extension.youtube.patches.VideoInformation;
 import app.morphe.extension.youtube.patches.playback.speed.CustomPlaybackSpeedPatch;
 import app.morphe.extension.youtube.settings.Settings;
@@ -45,7 +44,8 @@ public class PlaybackSpeedDialogButton {
      */
     public static void initializeButton(View controlsView) {
         try {
-            if (RESTORE_OLD_PLAYER_BUTTONS || !Settings.PLAYBACK_SPEED_DIALOG_BUTTON.get()) {
+            if (LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS ||
+                    !Settings.PLAYBACK_SPEED_DIALOG_BUTTON.get()) {
                 return;
             }
 
@@ -64,7 +64,7 @@ public class PlaybackSpeedDialogButton {
 
     public static void initializeLegacyButton(View controlsView) {
         try {
-            if (!RESTORE_OLD_PLAYER_BUTTONS) {
+            if (!LegacyPlayerControlsPatch.RESTORE_OLD_PLAYER_BUTTONS) {
                 return;
             }
 
@@ -74,7 +74,7 @@ public class PlaybackSpeedDialogButton {
                     "morphe_playback_speed_dialog_button",
                     "morphe_playback_speed_dialog_button_text",
                     null,
-                    Settings.PLAYBACK_SPEED_DIALOG_BUTTON::get,
+                    Settings.PLAYBACK_SPEED_DIALOG_BUTTON,
                     getOnClickListener(),
                     getOnLongClickListener()
             );
@@ -94,7 +94,10 @@ public class PlaybackSpeedDialogButton {
                         VideoInformation.getPlaybackSpeed() == defaultSpeed)
                         ? 1.0f
                         : defaultSpeed;
-                VideoInformation.overridePlaybackSpeed(speed);
+                VideoInformation.setPlaybackSpeed(speed);
+                if (speed == 1.0f) {
+                    VideoInformation.setAudioPitch(1.0f);
+                }
             } catch (Exception ex) {
                 Logger.printException(() -> "speed button long click failure", ex);
             }
@@ -117,37 +120,10 @@ public class PlaybackSpeedDialogButton {
     }
 
     /**
-     * injection point.
-     */
-    public static void setVisibilityNegatedImmediate() {
-        if (legacy != null) {
-            legacy.setVisibilityNegatedImmediate();
-        }
-    }
-
-    /**
-     * Injection point.
-     */
-    public static void setVisibilityImmediate(boolean visible) {
-        if (legacy != null) {
-            legacy.setVisibilityImmediate(visible);
-        }
-    }
-
-    /**
-     * Injection point.
-     */
-    public static void setVisibility(boolean visible, boolean animated) {
-        if (legacy != null) {
-            legacy.setVisibility(visible, animated);
-        }
-    }
-
-    /**
      * Injection point.
      */
     public static void videoSpeedChanged(float currentVideoSpeed) {
-        updateButtonAppearance();
+        Utils.runOnMainThread(PlaybackSpeedDialogButton::updateButtonAppearance);
     }
 
     /**

@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Shared with YouTube and YT Music -->
 <!--
+
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -20,6 +21,25 @@ Second \"item\" text"</string>
   <string name="morphe_restart_first_run">Kurulumu tamamlamak için yeniden başlatın</string>
   <!-- layout.branding.baseCustomBrandingPatch -->
   <string name="morphe_custom_branding_name_title">Uygulama adı</string>
+  <!-- layout.theme.baseThemePatch -->
+  <string name="morphe_theme_color_dark_title">Koyu tema arka planı</string>
+  <string name="morphe_theme_color_dark_entry_2">Saf siyah</string>
+  <string name="morphe_theme_color_dark_entry_3">Material You (Saf siyah)</string>
+  <string name="morphe_theme_color_dark_entry_9">Klasik YouTube</string>
+  <string name="morphe_theme_color_dark_entry_10">Koyu pembe</string>
+  <string name="morphe_theme_color_dark_entry_11">Koyu mavi</string>
+  <string name="morphe_theme_color_dark_entry_12">Koyu yeşil</string>
+  <string name="morphe_theme_color_dark_entry_13">Koyu sarı</string>
+  <string name="morphe_theme_color_dark_entry_14">Koyu turuncu</string>
+  <string name="morphe_theme_color_dark_entry_15">Koyu kırmızı</string>
+  <string name="morphe_theme_color_dark_custom_title">Özel koyu arka plan</string>
+  <string name="morphe_theme_color_dark_custom_summary">Koyu temanın arka plan rengini ayarla</string>
+  <string name="morphe_theme_color_entry_1">Uygulama varsayılanı</string>
+  <string name="morphe_theme_color_entry_4">Material You (Nötr)</string>
+  <string name="morphe_theme_color_entry_5">Material You (Birincil)</string>
+  <string name="morphe_theme_color_entry_6">Material You (İkincil)</string>
+  <string name="morphe_theme_color_entry_7">Material You (Üçüncül)</string>
+  <string name="morphe_theme_color_custom_entry">Özel</string>
   <!-- interaction.downloads.downloadsPatch -->
   <string name="morphe_external_downloader_screen_title">Harici indirmeler</string>
   <string name="morphe_external_downloader_name_title">İndirici paket adı</string>
@@ -103,17 +123,6 @@ Oturum açmak için, devam et butonuna basın."</string>
   <string name="morphe_oauth2_connection_failure_auth_error">VR oturumu açılamadı: %s</string>
   <string name="morphe_oauth2_toast_reset">Android VR oturumu kapatıldı</string>
   <string name="morphe_oauth2_toast_invalid">Geçersiz VR oturum açma belirteci, VR\'da tekrar oturum açmayı deneyin</string>
-  <string name="morphe_spoof_video_streams_disable_player_js_update_title">Oynatıcı JavaScript güncellemesini devre dışı bırak</string>
-  <string name="morphe_spoof_video_streams_disable_player_js_update_summary">"Oynatıcı JavaScript'ini belirli bir sürüme kilitler
-
-• Geçerli bir oynatıcı JavaScript hash'i gereklidir
-• Oynatıcı JavaScript hash'leri yaklaşık bir ay geçerlidir ve eski hash'ler GVS tarafından iptal edilir
-• Hash iptal edilirse oynatma başarısız olur"</string>
-  <string name="morphe_spoof_video_streams_disable_player_js_update_user_dialog_message">"Geçerli bir oynatıcı JavaScript hash'i sağlamanız gerekir.
-
-Oynatıcı JavaScript hash'i güncel değilse oynatma başarısız olur."</string>
-  <string name="morphe_spoof_video_streams_player_js_hash_value_title">Oynatıcı JavaScript hash</string>
-  <string name="morphe_spoof_video_streams_player_js_hash_value_summary">Geçerli bir oynatıcı JavaScript hash değeri girin</string>
   <!-- misc.quic.disableQUICProtocolPatch -->
   <string name="morphe_disable_quic_protocol_title">QUIC protokolünü devre dışı bırak</string>
   <!-- misc.audio.drc.disableDRCAudioPatch  -->
@@ -142,8 +151,9 @@ Oynatıcı JavaScript hash'i güncel değilse oynatma başarısız olur."</strin
   <string name="morphe_proxy_allow_direct_fallback_summary">Proxy başarısız olursa doğrudan bağlan</string>
   <!-- ad.hideFullscreenAdsPatch -->
   <string name="morphe_hide_fullscreen_ads_title">Tam ekran reklamları gizle</string>
-  <!-- 'Spoof video streams' should be the same translation used for 'morphe_spoof_video_streams_screen_title'. -->
-  <string name="morphe_force_original_audio_not_available">Bu özelliği kullanmak için \'Video akışlarını taklit et\' ayarını Android Reel veya TV olarak değiştirin</string>
+  <!-- 'Spoof video streams' should match the language used in 'morphe_spoof_video_streams_screen_title'.
+          'Android Studio' and 'Android VR Downgraded' must be kept untranslated. -->
+  <string name="morphe_force_original_audio_not_available">Bu özelliği kullanmak için, \'Video akışlarını taklit et\' ayarını \'Android Studio\' ve \'Android VR Downgraded\' dışındaki herhangi bir istemciye değiştirin.</string>
   <!-- misc.privacy.sanitizeSharingLinksPatch -->
   <string name="morphe_sanitize_sharing_links_title">Paylaşım bağlantılarını temizle</string>
   <string name="morphe_sanitize_sharing_links_summary">Paylaşılan bağlantılardan izleme sorgu parametrelerini kaldırır</string>
@@ -167,6 +177,13 @@ Ancak, bunun etkinleştirilmesi IP adresiniz gibi bazı kullanıcı verilerini d
   <!-- 'Component path builder strings' is the technical name for identifying the Litho UI layout items to hide. This is an advanced feature and most users will never use this. -->
   <string name="morphe_custom_filter_strings_summary">Filtrelenecek bileşen yolu oluşturucu dizelerinin yeni satırlarla ayrılmış listesi</string>
   <string name="morphe_custom_filter_toast_invalid_syntax">Geçersiz özel filtre: %s</string>
+  <!-- layout.hide.settingsmenu.hideSettingsMenuFilterPatch -->
+  <string name="morphe_settings_menu_filter_screen_title">Ayarlar menüsü filtresi</string>
+  <string name="morphe_settings_menu_filter_screen_summary">Görünür adlarına göre standart uygulama ayarları ekranındaki öğeleri gizle</string>
+  <string name="morphe_settings_menu_filter_picker_empty">Listeyi doldurmak için standart uygulama ayarları ekranını bir kez açın</string>
+  <!-- interaction.dialog.removeViewerDiscretionDialogPatch -->
+  <string name="morphe_remove_viewer_discretion_dialog_title">İzleyici uyarısı iletişim kutusunu kaldır</string>
+  <string name="morphe_remove_viewer_discretion_dialog_summary">Bu, yaş kısıtlamasını kaldırmaz. Sadece otomatik olarak kabul eder</string>
   <!-- misc.spoof.appversion.spoofAppVersionPatch -->
   <string name="morphe_spoof_app_version_title">Uygulama sürümünü taklit et</string>
   <string name="morphe_spoof_app_version_summary">Sunucuya daha eski bir uygulama sürümü kullandığınızı düşündürerek eski arayüz özelliklerini geri yükler</string>
@@ -176,4 +193,42 @@ Bu, uygulamanın görünümünü ve özelliklerini değiştirecektir, ancak bili
 
 Daha sonra kapatılırsa, arayüz hatalarını önlemek için uygulama verilerinin temizlenmesi önerilir."</string>
   <string name="morphe_spoof_app_version_target_title">Hedef uygulama sürümü taklidi</string>
+  <!-- layout.returnyoutubedislike.returnYouTubeDislikePatch -->
+  <!-- Brief notification (toast) shown if network connection times out. Translations of this should not be longer than the original English text, otherwise the text can be clipped and not entirely shown. -->
+  <string name="morphe_ryd_failure_connection_timeout">Beğenmeme sayıları geçici olarak kullanılamıyor (API zaman aşımına uğradı)</string>
+  <string name="morphe_ryd_failure_connection_status_code">Beğenilmemeler kullanılamıyor (durum %d)</string>
+  <string name="morphe_ryd_failure_client_rate_limit_requested">Beğenilmemeler kullanılamıyor (istemci API sınırı)</string>
+  <string name="morphe_ryd_failure_generic">Beğenilmemeler kullanılamıyor (%s)</string>
+  <!-- Video likes have been set to hidden by the video uploader. -->
+  <string name="morphe_ryd_video_likes_hidden_by_video_owner">Sahibi tarafından gizlendi</string>
+  <string name="morphe_ryd_enabled_title">Return YouTube Dislike\'ı Etkinleştir</string>
+  <string name="morphe_ryd_dislike_percentage_title">Beğenmemeyi yüzde olarak göster</string>
+  <string name="morphe_ryd_dislike_percentage_summary">Beğenmemeleri sayı yerine beğenilere kıyasla yüzde olarak gösterir</string>
+  <!-- Translations should match the language used in 'morphe_sb_enable_compact_skip_button'. -->
+  <string name="morphe_ryd_compact_layout_title">Ufak Beğen düğmesi kullan</string>
+  <string name="morphe_ryd_compact_layout_summary">Yer kazanmak için Beğen düğmesinin genişliğini azaltır</string>
+  <string name="morphe_ryd_estimated_like_title">Tahmini beğenileri göster</string>
+  <string name="morphe_ryd_estimated_like_summary">İçerik üreticisinin beğenmeleri kapattığı videolarda tahmini bir beğeni sayısı gösterir</string>
+  <string name="morphe_ryd_toast_on_connection_error_title">Bağlantı hatası uyarılarını göster</string>
+  <string name="morphe_ryd_toast_on_connection_error_summary">Return YouTube Dislike sunucusu kullanılamadığında bir bildirim gösterir</string>
+  <string name="morphe_ryd_attribution_summary">"Veriler Return YouTube Dislike API tarafından sağlanır
+
+ReturnYouTubeDislike.com'u açmak için buraya dokunun"</string>
+  <!-- Statistic strings are shown in the settings only when Morphe debug mode is enabled. Typical users will never see these. -->
+  <string name="morphe_ryd_statistics_category_title">Bu cihazın Return YouTube Dislike API istatistikleri</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeAverage_title">API yanıt süresi, ortalama</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeMin_title">API yanıt süresi, minimum</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeMax_title">API yanıt süresi, maksimum</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeLast_title">API yanıt süresi, son medya</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeLast_rate_limit_summary">Beğenmeme sayıları geçici olarak kullanılamıyor - İstemci API hız sınırı yürürlükte</string>
+  <string name="morphe_ryd_statistics_getFetchCallCount_title">API\'den oy isteme çağrısı sayısı</string>
+  <string name="morphe_ryd_statistics_getFetchCallCount_zero_summary">Hiç çağrı yapılmadı</string>
+  <string name="morphe_ryd_statistics_getFetchCallCount_non_zero_summary">%d ağ çağrısı yapıldı</string>
+  <string name="morphe_ryd_statistics_getFetchCallNumberOfFailures_title">API oylarını getirme, zaman aşımı sayısı</string>
+  <string name="morphe_ryd_statistics_getFetchCallNumberOfFailures_zero_summary">Hiçbir ağ çağrısı zaman aşımına uğramadı</string>
+  <string name="morphe_ryd_statistics_getFetchCallNumberOfFailures_non_zero_summary">%d ağ çağrısı zaman aşımına uğradı</string>
+  <string name="morphe_ryd_statistics_getNumberOfRateLimitRequestsEncountered_title">API istemci hız sınırları</string>
+  <string name="morphe_ryd_statistics_getNumberOfRateLimitRequestsEncountered_zero_summary">Hiçbir istemci hız sınırıyla karşılaşılmadı</string>
+  <string name="morphe_ryd_statistics_getNumberOfRateLimitRequestsEncountered_non_zero_summary">İstemci hız sınırıyla %d kez karşılaşıldı</string>
+  <string name="morphe_ryd_statistics_millisecond_text">%d milisaniye</string>
 </resources>

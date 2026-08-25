@@ -2,7 +2,7 @@
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -16,6 +16,8 @@ Second \"item\" text"</string>
 
 -->
 <resources>
+  <string name="reddit_privacy_policy">Redditin tietosuojakäytäntö</string>
+  <string name="morphe_google_signin_not_available_toast">Google-kirjautuminen ei ole käytettävissä. Kirjaudu sähköpostilla</string>
   <string name="morphe_screen_ads_title">Mainokset</string>
   <string name="morphe_hide_post_ads_title">Piilota syötteen mainokset</string>
   <string name="morphe_hide_comment_ads_title">Piilota kommenttimainokset</string>
@@ -32,9 +34,19 @@ Second \"item\" text"</string>
   <string name="morphe_hide_about_shelf_title">Piilota Tietoja-hylly</string>
   <string name="morphe_hide_resources_shelf_title">Piilota Resurssit-hylly</string>
   <string name="morphe_screen_layout_title">Ulkoasu</string>
+  <string name="morphe_custom_font_title">Mukautettu fontti</string>
+  <string name="morphe_custom_font_summary">Lataa mukautettu TTF- tai OTF-fonttitiedosto alla olevasta polusta. Tämän ottaminen käyttöön poistaa myös järjestelmäfontin käytön pakottamiseen käytön.</string>
+  <string name="morphe_custom_font_file_path_title">Mukautetun fontin tiedosto</string>
+  <string name="morphe_custom_font_file_path_summary">Napauta valitaksesi TTF- tai OTF-fonttitiedosto</string>
+  <string name="morphe_custom_font_selected_font">Valittu fontti – %s</string>
+  <string name="morphe_custom_font_pick_file_first">Valitse mukautettu fonttitiedosto ensin</string>
+  <string name="morphe_custom_font_invalid_file">Valitse .ttf- tai .otf-fonttitiedosto</string>
+  <string name="morphe_custom_font_failed_to_load">Mukautetun fontin lataaminen epäonnistui. Valitse toinen tiedosto</string>
   <string name="morphe_disable_modern_home_title">Poista käytöstä moderni käyttöliittymä</string>
   <string name="morphe_disable_screenshot_popup_title">Poista näyttökuvapop-up käytöstä</string>
   <string name="morphe_disable_screenshot_popup_summary">Poistaa näyttökuvan ottamisen yhteydessä näkyvän pop-upin käytöstä</string>
+  <string name="morphe_force_system_font_title">Järjestelmän fontin pakottaminen</string>
+  <string name="morphe_force_system_font_summary">Käytä laitteen järjestelmäfonttia Redditt Sansin tai Roboton sijaan. Tämän ottaminen käyttöön poistaa myös mukautetun fontin käytön.</string>
   <string name="morphe_hide_ask_button_title">Piilota Kysy-painike</string>
   <string name="morphe_hide_ask_button_summary">Piilottaa Kysy-painike hakupalkissa</string>
   <string name="morphe_hide_communities_shelf_title">Piilota yhteisöjen hylly</string>

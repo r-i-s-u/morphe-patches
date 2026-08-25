@@ -16,10 +16,12 @@ import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.youtube.misc.extension.sharedExtensionPatch
 import app.morphe.patches.youtube.misc.playservice.is_21_21_or_greater
+import app.morphe.patches.youtube.misc.playservice.is_21_33_or_greater
+import app.morphe.patches.youtube.misc.playservice.versionCheckPatch
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.cloneParameters
 import app.morphe.util.findInstructionIndicesReversedOrThrow
-import app.morphe.util.getReference
+import app.morphe.util.indexOfFirstInstruction
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.builder.MutableMethodImplementation
@@ -62,7 +64,7 @@ enum class Endpoint(
 val clientContextHookPatch = bytecodePatch(
     description = "Hooks the context body of the endpoint.",
 ) {
-    dependsOn(sharedExtensionPatch)
+    dependsOn(sharedExtensionPatch, versionCheckPatch)
 
     execute {
         val clientInfoField : FieldReference
@@ -93,9 +95,14 @@ val clientContextHookPatch = bytecodePatch(
         }
 
         val messageLiteBuilderMethod : MethodReference
-        AuthenticationChangeListenerFingerprint.method.apply {
-            val messageLiteBuilderIndex = indexOfMessageLiteBuilderReference(
-                this, messageLiteBuilderField.definingClass
+        (if (is_21_33_or_greater) AuthenticationChangeListenerFingerprint
+        else AuthenticationChangeListenerLegacyFingerprint).method.apply {
+            val messageLiteBuilderIndex = indexOfFirstInstruction(
+                filter = methodCall(
+                    opcode = Opcode.INVOKE_VIRTUAL,
+                    parameters = emptyList(),
+                    returnType = messageLiteBuilderField.definingClass
+                )
             )
 
             messageLiteBuilderMethod = getInstruction<ReferenceInstruction>(

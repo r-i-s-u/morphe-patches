@@ -7,8 +7,6 @@
 
 package app.morphe.extension.shared.settings.preference;
 
-import static app.morphe.extension.shared.ResourceUtils.getIdentifierOrThrow;
-
 import android.app.Dialog;
 import android.content.Context;
 import android.content.res.Resources;
@@ -41,6 +39,7 @@ import java.util.Objects;
 import app.morphe.extension.shared.ResourceType;
 import app.morphe.extension.shared.ResourceUtils;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.theme.ThemeUtils;
 import app.morphe.extension.shared.ui.CustomDialog;
 
 /**
@@ -55,9 +54,9 @@ import app.morphe.extension.shared.ui.CustomDialog;
 @SuppressWarnings({"unused", "deprecation"})
 public class IconListPreference extends CustomDialogListPreference {
 
-    public static final int LAYOUT_MORPHE_ICON_LIST_ITEM = getIdentifierOrThrow(
+    public static final int LAYOUT_MORPHE_ICON_LIST_ITEM = ResourceUtils.getIdentifierOrThrow(
             ResourceType.LAYOUT, "morphe_icon_list_item");
-    public static final int ID_MORPHE_ITEM_ICON = getIdentifierOrThrow(
+    public static final int ID_MORPHE_ITEM_ICON = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "morphe_item_icon");
 
     static final float ICON_SIZE_DP = 48f;
@@ -346,11 +345,11 @@ public class IconListPreference extends CustomDialogListPreference {
             }
 
             holder.itemText.setText(getItem(position));
-            holder.itemText.setTextColor(Utils.getAppForegroundColor());
+            holder.itemText.setTextColor(ThemeUtils.getAppForegroundColor());
 
             boolean isSelected = entryValues[position].toString().equals(selectedValue);
             holder.checkIcon.setVisibility(isSelected ? View.VISIBLE : View.GONE);
-            holder.checkIcon.setColorFilter(Utils.getAppForegroundColor());
+            holder.checkIcon.setColorFilter(ThemeUtils.getAppForegroundColor());
             holder.placeholder.setVisibility(isSelected ? View.GONE : View.VISIBLE);
 
             if (holder.itemIcon != null) {

@@ -4,9 +4,12 @@
  *
  * See the included NOTICE file for GPLv3 Section 7 terms that apply to this code.
  */
+
 package app.morphe.extension.reddit.patches;
 
 import app.morphe.extension.reddit.settings.Settings;
+import app.morphe.extension.shared.Logger;
+import app.morphe.extension.shared.Utils;
 
 @SuppressWarnings("unused")
 public final class HideAskButtonPatch {
@@ -19,11 +22,26 @@ public final class HideAskButtonPatch {
         return false;  // Modified during patching.
     }
 
+
+    private static boolean isContextNotYetSet() {
+        // Possible fix for background crash of app when context is not yet set.
+        if (!Utils.isContextSet()) {
+            Logger.printInfo(() -> "Cannot hide ask button, context is null");
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Injection point.
      */
     public static boolean hideAskButton(String experimentName, boolean original) {
-        if (Settings.HIDE_ASK_BUTTON.get() && experimentName != null && experimentName.startsWith(ANDROID_SEARCH_BAR_ASK_BUTTON)) {
+        // Possible fix for background crash of app when context is not yet set.
+        if (isContextNotYetSet()) {
+            return original;
+        }
+        if (Settings.HIDE_ASK_BUTTON.get() && experimentName != null
+                && experimentName.startsWith(ANDROID_SEARCH_BAR_ASK_BUTTON)) {
             return false;
         }
 
@@ -34,6 +52,9 @@ public final class HideAskButtonPatch {
      * Injection point.
      */
     public static boolean shouldHideAskButton() {
+        if (isContextNotYetSet()) {
+            return false;
+        }
         return Settings.HIDE_ASK_BUTTON.get();
     }
 }

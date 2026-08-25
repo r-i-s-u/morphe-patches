@@ -18,6 +18,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.methodCall
 import app.morphe.patcher.patch.bytecodePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
+import app.morphe.patcher.util.smali.ExternalLabel
 import app.morphe.patches.shared.misc.settings.preference.BasePreference
 import app.morphe.patches.shared.misc.settings.preference.InputType
 import app.morphe.patches.shared.misc.settings.preference.ListPreference
@@ -29,15 +30,22 @@ import app.morphe.patches.youtube.misc.extension.sharedExtensionPatch
 import app.morphe.patches.youtube.misc.playservice.is_20_31_or_greater
 import app.morphe.patches.youtube.misc.playservice.is_20_37_or_greater
 import app.morphe.patches.youtube.misc.playservice.is_21_17_or_greater
+import app.morphe.patches.youtube.misc.playservice.is_21_29_or_greater
+import app.morphe.patches.youtube.misc.playservice.is_21_30_or_greater
+import app.morphe.patches.youtube.misc.playservice.is_21_32_or_greater
+import app.morphe.patches.youtube.misc.playservice.versionCheckPatch
 import app.morphe.patches.youtube.misc.settings.PreferenceScreen
 import app.morphe.patches.youtube.misc.settings.settingsPatch
 import app.morphe.patches.youtube.shared.Constants.COMPATIBILITY_YOUTUBE
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.cloneParameters
+import app.morphe.util.findFreeRegister
 import app.morphe.util.findInstructionIndicesReversedOrThrow
 import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstructionOrThrow
 import app.morphe.util.indexOfFirstLiteralInstructionOrThrow
 import app.morphe.util.insertLiteralOverride
+import app.morphe.util.numberOfParameterRegisters
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.Method
@@ -51,11 +59,13 @@ internal const val EXTENSION_CLASS = "Lapp/morphe/extension/youtube/patches/Mini
 @Suppress("unused")
 val miniplayerPatch = bytecodePatch(
     name = "Miniplayer",
-    description = "Adds options to change the in-app minimized player."
+    description = "Adds options to change the in-app minimized player. " +
+            "Patching 21.28.206 and lower has more miniplayer types to choose from."
 ) {
     dependsOn(
         sharedExtensionPatch,
         settingsPatch,
+        versionCheckPatch
     )
 
     compatibleWith(COMPATIBILITY_YOUTUBE)
@@ -63,27 +73,41 @@ val miniplayerPatch = bytecodePatch(
     execute {
         val preferences = mutableSetOf<BasePreference>()
 
-        preferences +=
-            if (is_20_37_or_greater) {
+        if (is_20_37_or_greater) {
+            // 21.29 removed all modern miniplayers except modern 4
+            preferences += if (!is_21_29_or_greater) {
                 ListPreference("morphe_miniplayer_type")
             } else {
-                ListPreference(
+                // TODO: Eventually remove this message
+                NonInteractivePreference(
                     key = "morphe_miniplayer_type",
-                    entriesKey = "morphe_miniplayer_type_legacy_20_03_entries",
-                    entryValuesKey = "morphe_miniplayer_type_legacy_20_03_entry_values"
+                    summaryKey = "morphe_miniplayer_not_available_summary"
                 )
             }
+        } else {
+            preferences += ListPreference(
+                key = "morphe_miniplayer_type",
+                entriesKey = "morphe_miniplayer_type_legacy_20_03_entries",
+                entryValuesKey = "morphe_miniplayer_type_legacy_20_03_entry_values"
+            )
+        }
 
         preferences += SwitchPreference("morphe_miniplayer_disable_resuming", summary = true)
         preferences += SwitchPreference("morphe_miniplayer_disable_drag_and_drop", summary = true)
         preferences += SwitchPreference("morphe_miniplayer_disable_horizontal_drag", summary = true)
         preferences += SwitchPreference("morphe_miniplayer_disable_rounded_corners")
-        preferences += SwitchPreference("morphe_miniplayer_hide_overlay_buttons")
-        preferences += TextPreference("morphe_miniplayer_width_dip", inputType = InputType.NUMBER)
-        preferences += NonInteractivePreference(
-            key = "morphe_miniplayer_opacity",
-            tag = "app.morphe.extension.shared.settings.preference.SeekBarPreference",
-        )
+        if (!is_21_29_or_greater) {
+            preferences += SwitchPreference("morphe_miniplayer_hide_overlay_buttons")
+        }
+        if (!is_21_32_or_greater) {
+            preferences += TextPreference("morphe_miniplayer_width_dip", inputType = InputType.NUMBER)
+        }
+        if (!is_21_29_or_greater) {
+            preferences += NonInteractivePreference(
+                key = "morphe_miniplayer_opacity",
+                tag = "app.morphe.extension.shared.settings.preference.SeekBarPreference"
+            )
+        }
         preferences += SwitchPreference("morphe_miniplayer_disable_horizontal_drag_playback", summary = true)
         preferences += SwitchPreference("morphe_miniplayer_disable_horizontal_reposition", summary = true)
 
@@ -91,8 +115,8 @@ val miniplayerPatch = bytecodePatch(
             PreferenceScreenPreference(
                 key = "morphe_miniplayer_screen",
                 sorting = PreferenceScreenPreference.Sorting.UNSORTED,
-                preferences = preferences,
-            ),
+                preferences = preferences
+            )
         )
 
         fun MutableMethod.insertMiniplayerBooleanOverride(index: Int, methodName: String) {
@@ -113,13 +137,6 @@ val miniplayerPatch = bytecodePatch(
          */
         fun MutableMethod.insertLegacyTabletMiniplayerOverride(index: Int) {
             insertMiniplayerBooleanOverride(index, "getLegacyTabletMiniplayerOverride")
-        }
-
-        /**
-         * Adds an override to force modern miniplayer to be used or not used.
-         */
-        fun MutableMethod.insertModernMiniplayerOverride(index: Int) {
-            insertMiniplayerBooleanOverride(index, "getModernMiniplayerOverride")
         }
 
         fun Fingerprint.insertMiniplayerFeatureFlagBooleanOverride(
@@ -147,21 +164,6 @@ val miniplayerPatch = bytecodePatch(
                     """
                 )
             }
-        }
-
-        /**
-         * Adds an override to specify which modern miniplayer is used.
-         */
-        fun MutableMethod.insertModernMiniplayerTypeOverride(iPutIndex: Int) {
-            val register = getInstruction<TwoRegisterInstruction>(iPutIndex).registerA
-
-            addInstructionsAtControlFlowLabel(
-                iPutIndex,
-                """
-                    invoke-static { v$register }, $EXTENSION_CLASS->getModernMiniplayerOverrideType(I)I
-                    move-result v$register
-                """
-            )
         }
 
         // region Disable resuming miniplayer (Continue watching)
@@ -213,84 +215,211 @@ val miniplayerPatch = bytecodePatch(
 
         // region Enable modern miniplayer.
 
-        MiniplayerModernConstructorFingerprint.classDef.methods.forEach {
-            it.apply {
-                if (AccessFlags.CONSTRUCTOR.isSet(accessFlags)) {
-                    val iPutIndex = indexOfFirstInstructionOrThrow {
-                        this.opcode == Opcode.IPUT && this.getReference<FieldReference>()?.type == "I"
-                    }
+        if (!is_21_29_or_greater) {
+            MiniplayerModernConstructorFingerprint.classDef.methods.forEach {
+                it.apply {
+                    if (AccessFlags.CONSTRUCTOR.isSet(accessFlags)) {
+                        val iPutIndex = indexOfFirstInstructionOrThrow {
+                            opcode == Opcode.IPUT && getReference<FieldReference>()?.type == "I"
+                        }
 
-                    insertModernMiniplayerTypeOverride(iPutIndex)
-                } else {
-                    findReturnIndicesReversed().forEach { index -> insertModernMiniplayerOverride(index) }
+                        val register = getInstruction<TwoRegisterInstruction>(iPutIndex).registerA
+                        addInstructionsAtControlFlowLabel(
+                            iPutIndex,
+                            """
+                                invoke-static { v$register }, $EXTENSION_CLASS->getModernMiniplayerOverrideType(I)I
+                                move-result v$register
+                            """
+                        )
+                    } else {
+                        findReturnIndicesReversed().forEach { index ->
+                            insertMiniplayerBooleanOverride(index, "getModernMiniplayerOverride")
+                        }
+                    }
+                }
+            }
+
+            MiniplayerModernConstructorFingerprint.matchAll().forEach {
+                it.method.insertLiteralOverride(
+                    MINIPLAYER_MODERN_FEATURE_LEGACY_KEY,
+                    "$EXTENSION_CLASS->getModernMiniplayerOverride(Z)Z"
+                )
+            }
+
+            MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
+                MINIPLAYER_DOUBLE_TAP_FEATURE_KEY,
+                "getMiniplayerDoubleTapAction",
+            )
+        }
+
+        if (!is_21_30_or_greater) {
+            MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
+                MINIPLAYER_DRAG_DROP_FEATURE_KEY,
+                "getMiniplayerDragAndDrop",
+            )
+        } else {
+            MiniplayerDragAndDropFingerprint.let {
+                it.method.cloneParameters().apply {
+                    val instructionIndex = it.instructionMatches.last().index + numberOfParameterRegisters
+                    val instructionRegister = getInstruction<OneRegisterInstruction>(
+                        instructionIndex
+                    ).registerA
+
+                    addInstructionsAtControlFlowLabel(
+                        instructionIndex + 1,
+                        """
+                            invoke-static { v$instructionRegister }, $EXTENSION_CLASS->getMiniplayerDragAndDrop(I)Z
+                            move-result p0
+                            if-eqz p0, :get_drag_and_drop
+                            const/4 p0, 0
+                            return p0
+                            :get_drag_and_drop
+                            nop
+                        """
+                    )
                 }
             }
         }
-
-        MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_DRAG_DROP_FEATURE_KEY,
-            "getMiniplayerDragAndDrop",
-        )
-
-
-        MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_MODERN_FEATURE_LEGACY_KEY,
-            "getModernMiniplayerOverride",
-        )
 
         MiniplayerModernFeatureFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
             MINIPLAYER_MODERN_FEATURE_KEY,
             "getModernFeatureFlagsActiveOverride",
         )
 
-        MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_DOUBLE_TAP_FEATURE_KEY,
-            "getMiniplayerDoubleTapAction",
-        )
+        if (!is_21_32_or_greater) {
+            MiniplayerModernConstructorFingerprint.method.apply {
+                val literalIndex = indexOfFirstLiteralInstructionOrThrow(
+                    MINIPLAYER_INITIAL_SIZE_FEATURE_KEY
+                )
+                val targetIndex = indexOfFirstInstructionOrThrow(
+                    literalIndex, Opcode.LONG_TO_INT
+                )
+                val register = getInstruction<OneRegisterInstruction>(targetIndex).registerA
 
-        MiniplayerModernConstructorFingerprint.method.apply {
-            val literalIndex = indexOfFirstLiteralInstructionOrThrow(
-                MINIPLAYER_INITIAL_SIZE_FEATURE_KEY,
-            )
-            val targetIndex = indexOfFirstInstructionOrThrow(literalIndex, Opcode.LONG_TO_INT)
-            val register = getInstruction<OneRegisterInstruction>(targetIndex).registerA
+                addInstructions(
+                    targetIndex + 1,
+                    """
+                        invoke-static { v$register }, $EXTENSION_CLASS->getMiniplayerDefaultSize(I)I
+                        move-result v$register
+                    """
+                )
+            }
 
-            addInstructions(
-                targetIndex + 1,
-                """
-                    invoke-static { v$register }, $EXTENSION_CLASS->getMiniplayerDefaultSize(I)I
-                    move-result v$register
-                """
-            )
-        }
+            // Override a minimum size constant.
+            MiniplayerMinimumSizeFingerprint.let {
+                it.method.apply {
+                    val index = it.instructionMatches[1].index
+                    val register = getInstruction<OneRegisterInstruction>(index).registerA
 
-        // Override a minimum size constant.
-        MiniplayerMinimumSizeFingerprint.let {
-            it.method.apply {
-                val index = it.instructionMatches[1].index
-                val register = getInstruction<OneRegisterInstruction>(index).registerA
-
-                // Smaller sizes can be used, but the miniplayer will always start in size 170 if set any smaller.
-                // The 170 initial limit probably could be patched to allow even smaller initial sizes,
-                // but 170 is already half the horizontal space and smaller does not seem useful.
-                replaceInstruction(index, "const/16 v$register, 170")
+                    // Smaller sizes can be used, but the miniplayer will always start in size 170 if set any smaller.
+                    // The 170 initial limit probably could be patched to allow even smaller initial sizes,
+                    // but 170 is already half the horizontal space and smaller does not seem useful.
+                    replaceInstruction(index, "const/16 v$register, 170")
+                }
             }
         }
 
-        MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_ROUNDED_CORNERS_FEATURE_KEY,
-            "getRoundedCorners",
-        )
+        if (!is_21_30_or_greater) {
+            MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
+                MINIPLAYER_ROUNDED_CORNERS_FEATURE_KEY,
+                "getRoundedCorners",
+            )
+        } else {
+            MiniplayerRoundedCornersFingerprint.let {
+                it.method.apply {
+                    val index = it.instructionMatches.last().index
+                    val free = findFreeRegister(index)
 
-        MiniplayerOnCloseHandlerFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_DISABLED_FEATURE_KEY,
-            "getMiniplayerOnCloseHandler"
-        )
+                    addInstructionsAtControlFlowLabel(
+                        index,
+                        """
+                            invoke-static {}, $EXTENSION_CLASS->getRoundedCorners()Z
+                            move-result v$free
+                            if-nez v$free, :get_rounded_corners
+                        """,
+                        ExternalLabel("get_rounded_corners", getInstruction(index + 1))
+                    )
+                }
 
-        MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_HORIZONTAL_DRAG_FEATURE_KEY,
-            "getHorizontalDrag",
-        )
+            }
+        }
+
+        //$EXTENSION_CLASS
+
+        MiniplayerOnCloseHandlerFingerprint.matchAll().forEach {
+            // 21.30+ inlines the flag lookup and must patch ~2 places.
+            it.method.insertLiteralOverride(
+                MINIPLAYER_DISABLED_FEATURE_KEY,
+                "$EXTENSION_CLASS->getMiniplayerOnCloseHandler(Z)Z"
+            )
+        }
+
+        // region Horizontal drag
+        if (!is_21_30_or_greater) {
+            MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
+                MINIPLAYER_HORIZONTAL_DRAG_FEATURE_KEY,
+                "getHorizontalDrag",
+            )
+        } else {
+            MiniplayerOffscreenRectValidatorFingerprint.method.addInstructions(
+                0,
+                """
+                    invoke-static { }, $EXTENSION_CLASS->getHorizontalDrag()Z
+                    move-result v0
+                    if-eqz v0, :disable_offscreen_miniplayer
+                    const/4 v0, 0x0
+                    return v0
+                    :disable_offscreen_miniplayer
+                    nop
+                """
+            )
+        }
+
+        MiniplayerOffscreenHandlerFingerprint.let {
+            it.method.apply {
+                val index = it.instructionMatches.last().index
+                val free = findFreeRegister(index)
+
+                addInstructionsWithLabels(
+                    index + 1,
+                    """
+                        invoke-static { }, $EXTENSION_CLASS->getHorizontalDrag()Z
+                        move-result v$free
+                        if-eqz v$free, :disable_offscreen_handler
+                        return-void
+                        :disable_offscreen_handler
+                        nop
+                    """
+                )
+            }
+        }
+
+        // endregion
+
+        if (!is_21_30_or_greater) {
+            MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
+                MINIPLAYER_ANIMATED_EXPAND_FEATURE_KEY,
+                "getMaximizeAnimation",
+            )
+        } else {
+            MiniplayerAnimatedExpandFingerprint.let {
+                it.method.apply {
+                    val insertIndex = it.instructionMatches[1].index
+                    val labelIndex = it.instructionMatches.last().index
+                    val free = findFreeRegister(insertIndex)
+
+                    addInstructionsAtControlFlowLabel(
+                        insertIndex,
+                        """
+                            invoke-static { }, $EXTENSION_CLASS->getMaximizeAnimation()Z
+                            move-result v$free
+                            if-eqz v$free, :get_maximize_animation
+                        """,
+                        ExternalLabel("get_maximize_animation", getInstruction(labelIndex))
+                    )
+                }
+            }
+        }
 
         Fingerprint(
             definingClass = MiniplayerHorizontalDragPlaybackFingerprint.instructionMatches[2]
@@ -328,16 +457,11 @@ val miniplayerPatch = bytecodePatch(
                     "enableOffScreenMiniplayerButtonPressed(Landroid/view/MotionEvent;)V"
         )
 
-        MiniplayerModernConstructorFingerprint.insertMiniplayerFeatureFlagBooleanOverride(
-            MINIPLAYER_ANIMATED_EXPAND_FEATURE_KEY,
-            "getMaximizeAnimation",
-        )
-
         // endregion
 
         // region fix minimal miniplayer using the wrong pause/play bold icons.
 
-        if (is_20_31_or_greater) {
+        if (is_20_31_or_greater && !is_21_29_or_greater) {
             if (is_21_17_or_greater) {
                 // 21.17+ removed the code to set the non-bold miniplayer pause/play icon,
                 // and removed the non bold yt_fill_pause_white_36 icons.
@@ -380,12 +504,15 @@ val miniplayerPatch = bytecodePatch(
 
         // region Add hooks to hide modern miniplayer buttons.
 
-        listOf(
+        val fingerprints = mutableListOf(
             MiniplayerModernExpandButtonFingerprint to "hideMiniplayerExpandClose",
             MiniplayerModernCloseButtonFingerprint to "hideMiniplayerExpandClose",
             MiniplayerModernActionButtonFingerprint to "hideMiniplayerActionButton",
-            MiniplayerModernOverlayViewFingerprint to "adjustMiniplayerOpacity"
-        ).forEach { (fingerprint, methodName) ->
+        )
+        if (!is_21_29_or_greater) {
+            fingerprints += MiniplayerModernOverlayViewFingerprint to "adjustMiniplayerOpacity"
+        }
+        fingerprints.forEach { (fingerprint, methodName) ->
             fingerprint.method.apply {
                 val index = fingerprint.instructionMatches.last().index
                 val register = getInstruction<OneRegisterInstruction>(index).registerA

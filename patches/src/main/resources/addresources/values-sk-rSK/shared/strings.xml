@@ -2,7 +2,7 @@
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -49,6 +49,7 @@ Second \"item\" text"</string>
   <string name="morphe_settings_search_empty_history_summary">Pre uloženie do histórie vyhľadávania zadajte vyhľadávací dotaz a stlačte Enter</string>
   <string name="morphe_settings_search_history_title">Zobraziť históriu vyhľadávania v nastaveniach</string>
   <string name="morphe_show_menu_icons_title">Zobraziť ikony nastavení Morphe</string>
+  <string name="morphe_settings_menu_copy_path">Kopírované: %s</string>
   <string name="morphe_language_title">Jazyk Morphe</string>
   <string name="morphe_language_user_dialog_message">"Preklady pre niektoré jazyky sa môžu byť neúplné.
 
@@ -81,7 +82,7 @@ Ak chcete prekladať nové jazyky alebo vylepšiť existujúce preklady, navšt�
   <string name="morphe_settings_about_links_rv">2022 &#8209; 2025</string>
   <string name="morphe_settings_about_links_vanced">2019 &#8209; 2022</string>
   <string name="morphe_settings_about_links_licenses">Licenčné upozornenia</string>
-  <string name="morphe_settings_about_licenses_loading">Načítava sa...</string>
+  <string name="morphe_settings_about_licenses_loading">Načítava sa…</string>
   <!-- misc.debugging.enableDebuggingPatch -->
   <string name="morphe_debug_screen_title">Ladenie chýb</string>
   <string name="morphe_debug_screen_summary">Konfigurujte rozšírené možnosti pre vývojárov a diagnostické protokoly</string>
@@ -97,7 +98,7 @@ Nebudete informovaný o žiadnych nečakaných udalostiach."</string>
   <string name="morphe_debug_export_logs_file">Exportovať do súboru</string>
   <string name="morphe_debug_export_logs_success">Záznamy ladenia boli exportované</string>
   <string name="morphe_debug_export_logs_failed">Nepodarilo sa exportovať záznamy ladenia</string>
-  <string name="morphe_debug_logs_search_hint">Prehľadávať záznamy ladenia...</string>
+  <string name="morphe_debug_logs_search_hint">Vyhľadávanie v záznamoch ladenia…</string>
   <string name="morphe_debug_export_logs_clear">Vyčistiť</string>
   <string name="morphe_debug_logs_disabled">Zaznamenávanie ladiacich informácií nie je povolené</string>
   <string name="morphe_debug_logs_none_found">Žiadne záznamy ladenia neboli nájdené</string>
@@ -108,7 +109,7 @@ Nebudete informovaný o žiadnych nečakaných udalostiach."</string>
   <string name="morphe_debug_feature_flags_manager_summary">Spravovať príznaky booleovských funkcií</string>
   <string name="morphe_debug_feature_flags_manager_active_header">Aktívne príznaky funkcií (%d)</string>
   <string name="morphe_debug_feature_flags_manager_blocked_header">Blokované príznaky funkcií (%d)</string>
-  <string name="morphe_debug_feature_flags_manager_search_hint">Prehľadávať príznaky funkcií...</string>
+  <string name="morphe_debug_feature_flags_manager_search_hint">Vyhľadávanie v funkciách…</string>
   <string name="morphe_debug_feature_flags_manager_toast_saved">Príznaky funkcií uložené</string>
   <string name="morphe_debug_feature_flags_manager_toast_reset">Príznaky funkcií resetované</string>
   <string name="morphe_debug_feature_flags_manager_toast_copied">Príznaky funkcií skopírované do schránky</string>

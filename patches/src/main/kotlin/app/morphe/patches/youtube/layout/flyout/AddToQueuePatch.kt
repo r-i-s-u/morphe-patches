@@ -19,6 +19,7 @@ import app.morphe.patcher.string
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
 import app.morphe.patches.shared.misc.litho.filter.addLithoFilter
 import app.morphe.patches.shared.misc.settings.preference.SwitchPreference
+import app.morphe.patches.shared.misc.settings.preference.noTitleUnsortedPreferenceCategory
 import app.morphe.patches.youtube.layout.hide.general.ContextualMenuItemBuilderFingerprint
 import app.morphe.patches.youtube.layout.hide.general.ContextualMenuItemBuilderOnClickFingerprint
 import app.morphe.patches.youtube.misc.auth.authHookPatch
@@ -81,7 +82,10 @@ val addToQueuePatch = bytecodePatch(
 
     execute {
         PreferenceScreen.FEED.addPreferences(
-            SwitchPreference("morphe_queue_override_flyout_menu", summary = true)
+            noTitleUnsortedPreferenceCategory(
+                SwitchPreference("morphe_queue_override_flyout_menu", summary = true),
+                SwitchPreference("morphe_queue_add_flyout_menu", summary = true)
+            )
         )
 
         // Add interface method to get protocol buffer.
@@ -176,18 +180,18 @@ val addToQueuePatch = bytecodePatch(
         FeedFlyoutBufferObjectFingerprint.method.addInstruction(
             0,
             "invoke-static/range { p2 .. p2 }, $EXTENSION_UTILS_CLASS->" +
-                    "extractVideoId(Ljava/util/Map;)V"
+                    "extractFlyoutIdFromMap(Ljava/util/Map;)V"
         )
 
         OnClickLithoButtonBufferObjectFingerprint.let {
-            val match = it.instructionMatches[4]
+            val match = it.instructionMatches[3]
             val index = match.index
             val register = match.getInstruction<FiveRegisterInstruction>().registerC
 
             it.method.addInstruction(
                 index + 1,
                 "invoke-static { v$register }, $EXTENSION_UTILS_CLASS->" +
-                        "extractIdFromLithoButton(Ljava/util/Map;)V"
+                        "extractFlyoutIdFromLithoButton(Ljava/util/Map;)V"
             )
         }
 
@@ -200,7 +204,7 @@ val addToQueuePatch = bytecodePatch(
                 addInstruction(
                     index + 1,
                     "invoke-static { v$register }, $EXTENSION_UTILS_CLASS->" +
-                            "extractVideoId(Ljava/lang/Object;)V"
+                            "extractFlyoutIdFromObject(Ljava/lang/Object;)V"
                 )
             }
         }
@@ -234,7 +238,7 @@ val addToQueuePatch = bytecodePatch(
                         iget v$freeRegister, v$enumMethodRegister, $enumIntField
                         invoke-static { v$freeRegister }, $enumMethodCall
                         move-result-object v$freeRegister
-                        invoke-static { v$freeRegister, v$charCheckRegister }, $EXTENSION_CLASS->setCurrentButtonInfo(Ljava/lang/Enum;Ljava/lang/Object;)V
+                        invoke-static { v$freeRegister, v$charCheckRegister }, $EXTENSION_UTILS_CLASS->setCurrentButtonInfo(Ljava/lang/Enum;Ljava/lang/Object;)V
                     """
                 )
             }
@@ -255,7 +259,7 @@ val addToQueuePatch = bytecodePatch(
                             iget p0, p0, $enumIntField
                             invoke-static { p0 }, $enumMethodCall
                             move-result-object p0
-                            invoke-static { p0, v$secondButtonInfoParameterRegister }, $EXTENSION_CLASS->setCurrentButtonInfo(Ljava/lang/Enum;Ljava/lang/Object;)V
+                            invoke-static { p0, v$secondButtonInfoParameterRegister }, $EXTENSION_UTILS_CLASS->setCurrentButtonInfo(Ljava/lang/Enum;Ljava/lang/Object;)V
                         """
                     )
                 }

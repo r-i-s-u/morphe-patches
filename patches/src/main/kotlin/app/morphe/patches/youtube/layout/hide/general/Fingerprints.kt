@@ -21,10 +21,10 @@ import app.morphe.patcher.literal
 import app.morphe.patcher.methodCall
 import app.morphe.patcher.newInstance
 import app.morphe.patcher.opcode
+import app.morphe.patcher.parametersMatch
 import app.morphe.patcher.string
 import app.morphe.patches.all.misc.resources.ResourceType
 import app.morphe.patches.all.misc.resources.resourceLiteral
-import app.morphe.patches.youtube.layout.buttons.navigation.WideSearchbarLayoutFingerprint
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 
@@ -136,9 +136,6 @@ internal object ShowWatermarkFingerprint : Fingerprint(
     parameters = listOf("L", "L")
 )
 
-/**
- * Matches same method as [WideSearchbarLayoutFingerprint].
- */
 internal object YouTubeDoodlesImageViewFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
     returnType = "Landroid/view/View;",
@@ -210,15 +207,39 @@ internal object RelatedChipCloudFingerprint : Fingerprint(
         resourceLiteral(ResourceType.ID, "related_chip_cloud"),
         methodCall(
             opcode = Opcode.INVOKE_VIRTUAL,
-            name = "findViewById"
+            name = "findViewById",
+            location = MatchAfterImmediately()
         ),
-        literal(45682279L),
+        checkCast(
+            type = "Landroid/support/v7/widget/RecyclerView;",
+            location = MatchAfterWithin(2)
+        )
+    )
+)
+internal object RelatedChipCloudMirrorClassFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "V",
+    parameters = listOf("Landroid/view/View;", "Landroid/view/View;"),
+    filters = listOf(
+        resourceLiteral(ResourceType.ID, "related_chip_cloud"),
         methodCall(
             opcode = Opcode.INVOKE_VIRTUAL,
-            name = "getDimensionPixelSize",
-            returnType = "I",
+            name = "findViewById",
+            location = MatchAfterImmediately()
         ),
-        opcode(Opcode.MOVE_RESULT, location = MatchAfterImmediately())
+        checkCast(
+            type = "Landroid/support/v7/widget/RecyclerView;",
+            location = MatchAfterWithin(2)
+        ),
+        methodCall(
+            opcode = Opcode.INVOKE_VIRTUAL,
+            name = "findViewById",
+            location = MatchAfterWithin(6)
+        ),
+        checkCast(
+            type = "Landroid/support/v7/widget/RecyclerView;",
+            location = MatchAfterWithin(2)
+        )
     )
 )
 
@@ -454,16 +475,28 @@ internal object ChannelTabAddFingerprint : Fingerprint(
     classFingerprint = ChannelTabRendererFingerprint,
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
     returnType = "V",
-    parameters = listOf(
-        "L",
-        "I"
-    ),
     filters = listOf(
-        methodCall("Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z"),
-    )
+        methodCall("Ljava/util/ArrayList;->add(Ljava/lang/Object;)Z")
+    ),
+    custom = { method, _ ->
+        parametersMatch(
+            method.parameters,
+            listOf(
+                "L",
+                "I"
+            )
+        ) || parametersMatch( // 21.31+
+            method.parameters,
+            listOf(
+                "L",
+                "I",
+                "L"
+            )
+        )
+    }
 )
 
-internal object EngagementPanelInformationButtonFingerprint : Fingerprint(
+internal object InformationButtonFingerprint : Fingerprint(
     parameters = listOf("Landroid/content/Context;"),
     filters = listOf(
         resourceLiteral(ResourceType.ID, "information_button"),
@@ -507,6 +540,27 @@ internal object CreateSearchSuggestionsFingerprint : Fingerprint(
         )
     ),
     strings = listOf("ss_rds")
+)
+
+internal object TooltipAnchorViewFingerprint : Fingerprint(
+    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "V",
+    parameters = listOf("L"),
+    filters = listOf(
+        fieldAccess(
+            opcode = Opcode.IGET_OBJECT,
+            type = "Landroid/view/View;"
+        ),
+        resourceLiteral(ResourceType.LAYOUT, "tooltip_content_view"),
+        methodCall(
+            opcode = Opcode.INVOKE_STATIC,
+            definingClass = "Landroid/view/View;",
+            name = "inflate",
+            returnType = "Landroid/view/View;",
+            location = MatchAfterWithin(10)
+        ),
+        opcode(Opcode.MOVE_RESULT_OBJECT, location = MatchAfterImmediately())
+    )
 )
 
 internal object ThumbnailAndEmojiPickerContainerFingerprint : Fingerprint(
@@ -721,6 +775,18 @@ internal object JewelsButtonContainerFingerprint : Fingerprint(
     parameters = listOf(),
     filters = listOf(
         resourceLiteral(ResourceType.ID, "jewels_button_container"),
+        methodCall(
+            opcode = Opcode.INVOKE_VIRTUAL,
+            name = "findViewById"
+        ),
+        opcode(Opcode.MOVE_RESULT_OBJECT, location = MatchAfterImmediately())
+    )
+)
+
+internal object HideTimeBarEntryPointContainerFingerprint : Fingerprint(
+    returnType = "V",
+    filters = listOf(
+        resourceLiteral(ResourceType.ID, "time_bar_entry_point_tap_container"),
         methodCall(
             opcode = Opcode.INVOKE_VIRTUAL,
             name = "findViewById"

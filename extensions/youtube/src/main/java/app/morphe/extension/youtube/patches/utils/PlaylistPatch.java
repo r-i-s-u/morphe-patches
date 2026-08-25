@@ -8,14 +8,12 @@
 package app.morphe.extension.youtube.patches.utils;
 
 import static app.morphe.extension.shared.StringRef.str;
-import static app.morphe.extension.shared.innertube.utils.AuthUtils.getRequestHeader;
-import static app.morphe.extension.shared.innertube.utils.AuthUtils.isNotLoggedIn;
-import static app.morphe.extension.youtube.patches.LoadVideoPatch.openIntent;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.drawable.Drawable;
+import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.ImageView;
@@ -27,7 +25,6 @@ import androidx.annotation.GuardedBy;
 
 import org.apache.commons.collections4.BidiMap;
 import org.apache.commons.collections4.bidimap.DualHashBidiMap;
-import org.apache.commons.lang3.StringUtils;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.LinkedHashMap;
@@ -38,8 +35,11 @@ import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.ResourceType;
 import app.morphe.extension.shared.ResourceUtils;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.innertube.utils.AuthUtils;
+import app.morphe.extension.shared.theme.ThemeUtils;
 import app.morphe.extension.shared.ui.Dim;
 import app.morphe.extension.shared.ui.SheetBottomDialog;
+import app.morphe.extension.youtube.patches.LoadVideoPatch;
 import app.morphe.extension.youtube.patches.VideoInformation;
 import app.morphe.extension.youtube.patches.utils.requests.CreatePlaylistRequest;
 import app.morphe.extension.youtube.patches.utils.requests.EditPlaylistRequest;
@@ -84,7 +84,7 @@ public class PlaylistPatch {
     public static void prepareDialogBuilder(Context context, String currentVideoId) {
         Utils.verifyOnMainThread();
 
-        if (isNotLoggedIn()) {
+        if (AuthUtils.isNotLoggedIn()) {
             handleCheckError(checkFailedAuth);
             return;
         }
@@ -114,7 +114,7 @@ public class PlaylistPatch {
      * Invoked by extension.
      */
     public static void syncIfNeeded() {
-        if (!playlistId.isEmpty() && !syncStarted && !isNotLoggedIn()) {
+        if (!playlistId.isEmpty() && !syncStarted && !AuthUtils.isNotLoggedIn()) {
             syncStarted = true;
             syncPlaylistItems();
         }
@@ -122,7 +122,7 @@ public class PlaylistPatch {
 
     private static void syncPlaylistItems() {
         Utils.submitOnBackgroundThread(() -> {
-            Map<String, String> items = GetPlaylistItemsRequest.fetch(playlistId, getRequestHeader());
+            Map<String, String> items = GetPlaylistItemsRequest.fetch(playlistId, AuthUtils.getRequestHeader());
             if (items != null && !items.isEmpty()) {
                 synchronized (lastVideoIds) {
                     for (Map.Entry<String, String> entry : items.entrySet()) {
@@ -178,7 +178,7 @@ public class PlaylistPatch {
 
         ImageView icon = new ImageView(context);
         icon.setImageResource(iconId);
-        icon.setColorFilter(Utils.getAppForegroundColor());
+        icon.setColorFilter(ThemeUtils.getAppForegroundColor());
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(Dim.dp24, Dim.dp24);
         iconParams.setMarginEnd(Dim.dp16);
         icon.setLayoutParams(iconParams);
@@ -186,7 +186,7 @@ public class PlaylistPatch {
 
         TextView text = new TextView(context);
         text.setText(title);
-        text.setTextColor(Utils.getAppForegroundColor());
+        text.setTextColor(ThemeUtils.getAppForegroundColor());
         text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16);
         LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
@@ -203,7 +203,7 @@ public class PlaylistPatch {
         Utils.runOnBackgroundThread(() -> {
             synchronized (lastVideoIds) {
                 if (currentPlaylistId.isEmpty()) {
-                    CreatePlaylistRequest.fetchRequestIfNeeded(currentVideoId, getRequestHeader());
+                    CreatePlaylistRequest.fetchRequestIfNeeded(currentVideoId, AuthUtils.getRequestHeader());
                     CreatePlaylistRequest request = CreatePlaylistRequest.getRequestForVideoId(currentVideoId);
                     if (request != null) {
                         Pair<String, String> playlistIds = request.getPlaylistId();
@@ -230,7 +230,7 @@ public class PlaylistPatch {
                 } else {
                     String setVideoId = lastVideoIds.get(currentVideoId);
                     EditPlaylistRequest.fetchRequestIfNeeded(currentVideoId, currentPlaylistId,
-                            setVideoId, getRequestHeader());
+                            setVideoId, AuthUtils.getRequestHeader());
                     EditPlaylistRequest request = EditPlaylistRequest.getRequestForVideoId(currentVideoId);
                     if (request != null) {
                         String fetchedSetVideoId = request.getResult();
@@ -283,7 +283,7 @@ public class PlaylistPatch {
         }
         try {
             GetPlaylistsRequest request = GetPlaylistsRequest.fetchRequestIfNeeded(
-                    currentPlaylistId, getRequestHeader());
+                    currentPlaylistId, AuthUtils.getRequestHeader());
             if (request == null) {
                 return;
             }
@@ -339,12 +339,12 @@ public class PlaylistPatch {
 
     private static void saveToPlaylist(@Nullable String libraryId, @Nullable String libraryTitle) {
         try {
-            if (StringUtils.isEmpty(libraryId)) {
+            if (TextUtils.isEmpty(libraryId)) {
                 handleCheckError(checkFailedPlaylistId);
                 return;
             }
             SavePlaylistRequest request = SavePlaylistRequest.fetchRequestIfNeeded(
-                    playlistId, libraryId, getRequestHeader());
+                    playlistId, libraryId, AuthUtils.getRequestHeader());
             if (request == null) {
                 return;
             }
@@ -376,7 +376,7 @@ public class PlaylistPatch {
             try {
                 String url;
                 if (openVideo) {
-                    if (StringUtils.isEmpty(currentVideoId)) {
+                    if (TextUtils.isEmpty(currentVideoId)) {
                         handleCheckError(checkFailedVideoId);
                         return;
                     }
@@ -399,7 +399,7 @@ public class PlaylistPatch {
                             currentPlaylistId;
                 }
 
-                openIntent(url, reload);
+                LoadVideoPatch.openVideoIntent(url, reload);
             } catch (Exception ex) {
                 Logger.printException(() -> "openQueue failure", ex);
             }
@@ -414,7 +414,7 @@ public class PlaylistPatch {
         Utils.showToastShort(reason);
     }
 
-    private enum QueueManager {
+    public enum QueueManager {
         ADD_TO_QUEUE(
                 "morphe_queue_manager_add_to_queue",
                 "yt_outline_list_add_black_24",

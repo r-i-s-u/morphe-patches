@@ -2,7 +2,7 @@
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -16,6 +16,8 @@ Second \"item\" text"</string>
 
 -->
 <resources>
+  <string name="reddit_privacy_policy">Политика за поверителност на Reddit</string>
+  <string name="morphe_google_signin_not_available_toast">Входът с Google не е наличен. Използвайте имейл, за да влезете</string>
   <string name="morphe_screen_ads_title">Реклами</string>
   <string name="morphe_hide_post_ads_title">Скриване на рекламите в потока</string>
   <string name="morphe_hide_comment_ads_title">Скриване на реклами в коментари</string>
@@ -32,9 +34,19 @@ Second \"item\" text"</string>
   <string name="morphe_hide_about_shelf_title">Скриване на рафта \"Информация\"</string>
   <string name="morphe_hide_resources_shelf_title">Скриване на рафта \"Ресурси\"</string>
   <string name="morphe_screen_layout_title">Оформление</string>
+  <string name="morphe_custom_font_title">Потребителски шрифт</string>
+  <string name="morphe_custom_font_summary">Заредете потребителски TTF или OTF шрифтов файл от посочения път. Активирането на тази опция също изключва използването на системния шрифт.</string>
+  <string name="morphe_custom_font_file_path_title">Файл с потребителски шрифт</string>
+  <string name="morphe_custom_font_file_path_summary">Натиснете, за да изберете TTF или OTF файл със шрифт.</string>
+  <string name="morphe_custom_font_selected_font">Избран шрифт - %s</string>
+  <string name="morphe_custom_font_pick_file_first">Изберете потребителски шрифтов файл първо.</string>
+  <string name="morphe_custom_font_invalid_file">Моля, изберете .ttf или .otf шрифтов файл.</string>
+  <string name="morphe_custom_font_failed_to_load">Неуспешно зареждане на потребителски шрифт. Изберете друг файл</string>
   <string name="morphe_disable_modern_home_title">Деактивиране на модерен потребителски интерфейс на началния екран</string>
   <string name="morphe_disable_screenshot_popup_title">Изключване на изскачащия прозорец за екранна снимка</string>
   <string name="morphe_disable_screenshot_popup_summary">Изключва изскачащия прозорец, който се появява при правене на екранна снимка</string>
+  <string name="morphe_force_system_font_title">Използване на системния шрифт</string>
+  <string name="morphe_force_system_font_summary">Използвайте системния шрифт на устройството вместо Reddit Sans или Roboto. Активирането на тази опция също изключва персонализиран шрифт.</string>
   <string name="morphe_hide_ask_button_title">Скрий бутона \"Попитай\"</string>
   <string name="morphe_hide_ask_button_summary">Скрива бутона \"Попитай\" в лентата за търсене</string>
   <string name="morphe_hide_communities_shelf_title">Скриване на секцията с общности</string>

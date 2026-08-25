@@ -4,16 +4,20 @@
  *
  * See the included NOTICE file for GPLv3 Section 7 terms that apply to this code.
  */
+
 package app.morphe.patches.reddit.misc.settings
 
 import app.morphe.patcher.Fingerprint
 import app.morphe.patcher.InstructionLocation.MatchAfterImmediately
 import app.morphe.patcher.InstructionLocation.MatchAfterWithin
 import app.morphe.patcher.anyInstruction
+import app.morphe.patcher.checkCast
 import app.morphe.patcher.methodCall
 import app.morphe.patcher.newInstance
 import app.morphe.patcher.opcode
 import app.morphe.patcher.string
+import app.morphe.patches.all.misc.resources.ResourceType
+import app.morphe.patches.all.misc.resources.resourceLiteral
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 
@@ -25,7 +29,63 @@ internal object RedditActivityFingerprint : Fingerprint(
     )
 )
 
-internal object PreferenceDestinationFingerprint : Fingerprint(
+internal object GoogleSignInFunctionFingerprint : Fingerprint(
+    filters = listOf(
+        resourceLiteral(ResourceType.STRING, "continue_with_google"),
+        methodCall(
+            opcode = Opcode.INVOKE_STATIC_RANGE,
+            returnType = "V",
+            parameters = listOf(
+                "I",
+                "L",
+                "Ljava/lang/String;",
+                "Lkotlin/jvm/functions/Function0;",
+                "L",
+                "Z",
+                "Ljava/lang/String;",
+                "Z",
+                "L",
+                "I",
+                "I"
+            ),
+            location = MatchAfterWithin(20)
+        )
+    ),
+    custom = { method, _ ->
+        AccessFlags.STATIC.isSet(method.accessFlags)
+    }
+)
+
+// 2026.25.0+
+internal object StartUrlActivityFingerprint : Fingerprint(
+    parameters = listOf(
+        "L",
+        "Landroid/app/Activity;",
+        "Landroid/net/Uri;",
+        "Landroid/os/Bundle;",
+        "Z",
+        "I"
+    ),
+    filters = listOf(
+        methodCall(smali = "Landroid/content/Context;->getPackageManager()Landroid/content/pm/PackageManager;"),
+        string("android.intent.action.VIEW"),
+        methodCall(
+            parameters = listOf(
+                "Landroid/app/Activity;",
+                "Landroid/net/Uri;",
+                "I",
+                "Ljava/lang/String;",
+                "Landroid/os/Bundle;",
+                "Z"
+            )
+        )
+    ),
+    custom = { method, _ ->
+        AccessFlags.STATIC.isSet(method.accessFlags)
+    }
+)
+
+internal object PreferenceDestinationLegacyFingerprint : Fingerprint(
     definingClass = "Lcom/reddit/screen/settings/preferences/",
     returnType = "V",
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
@@ -36,9 +96,10 @@ internal object PreferenceDestinationFingerprint : Fingerprint(
     )
 )
 
-internal object PreferenceManagerFingerprint : Fingerprint(
-    returnType = "V",
+// 2026.29.0 and older
+internal object PreferenceManagerLegacyFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
+    returnType = "V",
     filters = listOf(
         opcode(Opcode.CONST),
         methodCall(
@@ -80,3 +141,33 @@ internal object WebBrowserActivityOnCreateFingerprint : Fingerprint(
     strings = listOf("com.reddit.extra.initial_url")
 )
 
+internal object GooglePlayUpdateCheckFingerprint : Fingerprint(
+    returnType = "Ljava/lang/Object;",
+    parameters = listOf(
+        "Lkotlin/coroutines/jvm/internal/ContinuationImpl;"
+    ),
+    filters = listOf(
+        checkCast("Lcom/reddit/appupdate/GooglePlayImmediateUpdateCheck$"),
+        string("PlayCore")
+    )
+)
+
+internal object PlayStoreVerificationFingerprint : Fingerprint(
+    returnType = "Z",
+    parameters = listOf(
+        "Landroid/content/Context;"
+    ),
+    filters = listOf(
+        string("Play Store package is not found.")
+    )
+)
+
+internal object CheckIntegrityPlayStoreFingerprint : Fingerprint(
+    returnType = "I",
+    parameters = listOf(
+        "Landroid/content/Context;"
+    ),
+    filters = listOf(
+        string("com.android.vending")
+    )
+)

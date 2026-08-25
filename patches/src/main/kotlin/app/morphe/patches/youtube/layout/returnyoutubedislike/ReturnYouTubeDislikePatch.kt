@@ -1,10 +1,26 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.patches.youtube.layout.returnyoutubedislike
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructions
 import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
+import app.morphe.patcher.fieldAccess
+import app.morphe.patcher.methodCall
+import app.morphe.patcher.newInstance
 import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.bytecodePatch
-import app.morphe.patches.shared.misc.litho.filter.addLithoFilter
+import app.morphe.patches.shared.layout.returnyoutubedislike.DislikeFingerprint
+import app.morphe.patches.shared.layout.returnyoutubedislike.EndpointServiceNameFingerprint
+import app.morphe.patches.shared.layout.returnyoutubedislike.likeEndpointParserFingerprint
+import app.morphe.patches.shared.layout.returnyoutubedislike.requestParameterCheckFingerprint
 import app.morphe.patches.shared.misc.litho.context.EXTENSION_CONTEXT_INTERFACE
 import app.morphe.patches.shared.misc.litho.context.conversionContextClassDef
 import app.morphe.patches.shared.misc.settings.preference.NonInteractivePreference
@@ -14,7 +30,6 @@ import app.morphe.patches.shared.misc.settings.preference.SwitchPreference
 import app.morphe.patches.youtube.misc.extension.sharedExtensionPatch
 import app.morphe.patches.youtube.misc.fix.videoactionbar.restoreOldVideoActionBarPatch
 import app.morphe.patches.youtube.misc.litho.context.conversionContextPatch
-import app.morphe.patches.youtube.misc.litho.filter.lithoFilterPatch
 import app.morphe.patches.youtube.misc.playertype.playerTypeHookPatch
 import app.morphe.patches.youtube.misc.playservice.is_21_25_or_greater
 import app.morphe.patches.youtube.misc.settings.PreferenceScreen
@@ -27,6 +42,7 @@ import app.morphe.patches.youtube.video.videoid.videoIdPatch
 import app.morphe.util.addInstructionsAtControlFlowLabel
 import app.morphe.util.cloneParameters
 import app.morphe.util.findFreeRegister
+import app.morphe.util.findInstructionIndicesReversedOrThrow
 import app.morphe.util.getFreeRegisterProvider
 import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstInstructionOrThrow
@@ -38,14 +54,9 @@ import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
-import com.android.tools.smali.dexlib2.iface.reference.MethodReference
-import com.android.tools.smali.dexlib2.iface.reference.TypeReference
 
 private const val EXTENSION_CLASS =
     "Lapp/morphe/extension/youtube/patches/ReturnYouTubeDislikePatch;"
-
-private const val EXTENSION_FILTER =
-    "Lapp/morphe/extension/youtube/patches/components/ReturnYouTubeDislikeFilter;"
 
 val returnYouTubeDislikePatch = bytecodePatch(
     name = "Return YouTube Dislike",
@@ -71,14 +82,14 @@ val returnYouTubeDislikePatch = bytecodePatch(
             SwitchPreference("morphe_ryd_toast_on_connection_error", summary = true),
             NonInteractivePreference(
                 key = "morphe_ryd_attribution",
-                tag = "app.morphe.extension.youtube.returnyoutubedislike.ui.ReturnYouTubeDislikeAboutPreference",
+                tag = "app.morphe.extension.shared.returnyoutubedislike.ui.ReturnYouTubeDislikeAboutPreference",
                 selectable = true,
             ),
             PreferenceCategory(
                 key = "morphe_ryd_statistics_category",
                 sorting = PreferenceScreenPreference.Sorting.UNSORTED,
                 preferences = emptySet(), // Preferences are added by custom class at runtime.
-                tag = "app.morphe.extension.youtube.returnyoutubedislike.ui.ReturnYouTubeDislikeDebugStatsPreferenceCategory"
+                tag = "app.morphe.extension.shared.returnyoutubedislike.ui.ReturnYouTubeDislikeDebugStatsPreferenceCategory"
             )
         )
 
@@ -141,16 +152,16 @@ val returnYouTubeDislikePatch = bytecodePatch(
             // Add additional registers so all parameters including p0 are free to use anywhere in the method.
             it.method.cloneParameters().apply {
                 // Find the instruction for creating the text data object.
-                val textDataClassType = TextComponentDataFingerprint.originalClassDef.type
-                val insertIndex: Int = indexOfFirstInstructionOrThrow {
-                    opcode == Opcode.NEW_INSTANCE &&
-                            getReference<TypeReference>()?.type == textDataClassType
-                }
-
-                val charSequenceIndex = indexOfFirstInstructionOrThrow(insertIndex) {
-                    opcode == Opcode.IPUT_OBJECT &&
-                            getReference<FieldReference>()?.type == "Ljava/lang/CharSequence;"
-                }
+                val insertIndex = indexOfFirstInstructionOrThrow(
+                    newInstance(TextComponentDataFingerprint.originalClassDef.type)
+                )
+                val charSequenceIndex = indexOfFirstInstructionOrThrow(
+                    insertIndex,
+                    fieldAccess(
+                        opcode = Opcode.IPUT_OBJECT,
+                        type = "Ljava/lang/CharSequence;"
+                    )
+                )
                 val charSequenceRegister = getInstruction<TwoRegisterInstruction>(charSequenceIndex).registerA
                 val conversionContext = findFreeRegister(insertIndex, charSequenceRegister)
 
@@ -171,7 +182,7 @@ val returnYouTubeDislikePatch = bytecodePatch(
         }
 
         // Hook new litho text creation code.
-        TextComponentFeatureFlagFingerprint.let {
+        TextComponentFeatureFlagFingerprint.matchAll().forEach {
             it.method.insertLiteralOverride(
                 it.instructionMatches.first().index,
                 "$EXTENSION_CLASS->useNewLithoTextCreation(Z)Z"
@@ -268,26 +279,26 @@ val returnYouTubeDislikePatch = bytecodePatch(
             // The rolling number Span is missing styling since it's initially set as a String.
             // Modify the UI text view and use the styled like/dislike Span.
             // Initial TextView is set in this method.
-            RollingNumberTextViewFingerprint.method,
+            RollingNumberTextViewFingerprint,
             // Videos less than 24 hours after uploaded, like counts will be updated in real time.
             // Whenever like counts are updated, TextView is set in this method.
-            RollingNumberTextViewAnimationUpdateFingerprint.method,
-        ).forEach { insertMethod ->
-            insertMethod.apply {
-                val setTextIndex = indexOfFirstInstructionOrThrow {
-                    getReference<MethodReference>()?.name == "setText"
+            RollingNumberTextViewAnimationUpdateFingerprint,
+        ).forEach { fingerprint ->
+            fingerprint.method.apply {
+                findInstructionIndicesReversedOrThrow(
+                    methodCall(name = "setText")
+                ).forEach { setTextIndex ->
+                    val textViewRegister = getInstruction<FiveRegisterInstruction>(setTextIndex).registerC
+                    val textSpanRegister = getInstruction<FiveRegisterInstruction>(setTextIndex).registerD
+
+                    addInstructions(
+                        setTextIndex,
+                        """
+                            invoke-static { v$textViewRegister, v$textSpanRegister }, $EXTENSION_CLASS->updateRollingNumber(Landroid/widget/TextView;Ljava/lang/CharSequence;)Ljava/lang/CharSequence;
+                            move-result-object v$textSpanRegister
+                        """
+                    )
                 }
-
-                val textViewRegister = getInstruction<FiveRegisterInstruction>(setTextIndex).registerC
-                val textSpanRegister = getInstruction<FiveRegisterInstruction>(setTextIndex).registerD
-
-                addInstructions(
-                    setTextIndex,
-                    """
-                        invoke-static { v$textViewRegister, v$textSpanRegister }, $EXTENSION_CLASS->updateRollingNumber(Landroid/widget/TextView;Ljava/lang/CharSequence;)Ljava/lang/CharSequence;
-                        move-result-object v$textSpanRegister
-                    """
-                )
             }
         }
 

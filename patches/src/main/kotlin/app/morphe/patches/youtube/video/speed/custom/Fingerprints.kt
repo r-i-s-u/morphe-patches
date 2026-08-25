@@ -1,7 +1,16 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.patches.youtube.video.speed.custom
 
 import app.morphe.patcher.Fingerprint
-import app.morphe.patcher.InstructionLocation.MatchAfterImmediately
 import app.morphe.patcher.OpcodesFilter
 import app.morphe.patcher.fieldAccess
 import app.morphe.patcher.literal
@@ -11,6 +20,7 @@ import app.morphe.patcher.opcode
 import app.morphe.patcher.string
 import app.morphe.patches.all.misc.resources.ResourceType
 import app.morphe.patches.all.misc.resources.resourceLiteral
+import app.morphe.patches.youtube.shared.InitializePlaybackSpeedValuesFingerprint
 import com.android.tools.smali.dexlib2.AccessFlags
 import com.android.tools.smali.dexlib2.Opcode
 
@@ -34,32 +44,6 @@ internal object AudioTrackOldBottomSheetFingerprint : Fingerprint(
             returnType = "V"
         ),
     )
-)
-
-internal object SpeedFloatFieldAccessFingerprint : Fingerprint(
-    parameters = listOf("[L", "F"),
-    filters = listOf(
-        fieldAccess(opcode = Opcode.IGET, type = "F"),
-        methodCall(
-            opcode = Opcode.INVOKE_STATIC,
-            smali = "Ljava/lang/Float;->compare(FF)I",
-            location = MatchAfterImmediately()
-        )
-    )
-)
-
-internal object InitializePlaybackSpeedValuesFingerprint : Fingerprint(
-    parameters = listOf("[L", "I"),
-    filters = OpcodesFilter.opcodesToFilters(
-        Opcode.IGET_OBJECT,
-        Opcode.IGET_OBJECT,
-        Opcode.IF_NE,
-        Opcode.IGET,
-        Opcode.IF_EQ,
-        Opcode.IPUT_OBJECT,
-        Opcode.IPUT,
-        Opcode.IGET_OBJECT
-    ) + string("menu_item_playback_speed")
 )
 
 internal object ShowOldPlaybackSpeedMenuFingerprint : Fingerprint(
@@ -101,45 +85,18 @@ internal object SpeedArrayGeneratorFingerprint : Fingerprint(
     returnType = "[L",
     parameters = listOf("L"),
     filters = listOf(
-        methodCall(name = "size", returnType = "I"),
+        methodCall(
+            name = "size",
+            returnType = "I"
+        ),
         newInstance("Ljava/text/DecimalFormat;"),
         string("0.0#"),
         literal(7),
         opcode(Opcode.NEW_ARRAY),
-        fieldAccess(type = "[F")
-    )
-)
-
-/**
- * 20.34+
- */
-internal object SpeedLimiterFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "V",
-    parameters = listOf("F", "L"),
-    filters = listOf(
-        string("setPlaybackRate"),
-        literal(0.25f),
-        literal(4.0f)
-    )
-)
-
-/**
- * 20.33 and lower.
- */
-internal object SpeedLimiterLegacyFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "V",
-    parameters = listOf("F"),
-    filters = OpcodesFilter.opcodesToFilters(
-        Opcode.INVOKE_STATIC,
-        Opcode.MOVE_RESULT,
-        Opcode.IF_EQZ,
-        Opcode.CONST_HIGH16,
-        Opcode.GOTO,
-        Opcode.CONST_HIGH16,
-        Opcode.CONST_HIGH16,
-        Opcode.INVOKE_STATIC,
+        fieldAccess(
+            opcode = Opcode.SGET_OBJECT,
+            type = "[F"
+        )
     )
 )
 

@@ -7,8 +7,6 @@
 
 package app.morphe.extension.youtube.patches.components;
 
-import static app.morphe.extension.youtube.shared.NavigationBar.NavigationButton;
-
 import androidx.annotation.Nullable;
 
 import java.nio.charset.StandardCharsets;
@@ -73,6 +71,14 @@ public final class AiSListFilter extends BufferPhraseFilter {
 
     @Override
     protected void reparseIfNeeded() {
+        // Skip network fetch and buffer parse while every scope toggle is off.
+        if (!Settings.HIDE_AISLIST_BLOCKLIST_HOME.get()
+                && !Settings.HIDE_AISLIST_BLOCKLIST_SEARCH.get()
+                && !Settings.HIDE_AISLIST_WARNLIST_HOME.get()
+                && !Settings.HIDE_AISLIST_WARNLIST_SEARCH.get()) {
+            return;
+        }
+
         final long now = System.currentTimeMillis();
         final long lastCheck = lastRefreshCheckMs.get();
         if (now - lastCheck > REFRESH_CHECK_INTERVAL_MS
@@ -163,9 +169,9 @@ public final class AiSListFilter extends BufferPhraseFilter {
         if (NavigationBar.isSearchBarActive()) {
             return searchSetting.get();
         }
-        NavigationButton nav = NavigationButton.getSelectedNavigationButton();
+        NavigationBar.NavigationButton nav = NavigationBar.NavigationButton.getSelectedNavigationButton();
         // Unknown tab defaults to home; other tabs (Subscriptions, Library, Notifications) are skipped.
-        if (nav == null || nav == NavigationButton.HOME) return homeSetting.get();
+        if (nav == null || nav == NavigationBar.NavigationButton.HOME) return homeSetting.get();
         return false;
     }
 
@@ -212,8 +218,8 @@ public final class AiSListFilter extends BufferPhraseFilter {
         // Player fullscreen: treat under-video results as home (mirrors activeFor).
         if (PlayerType.getCurrent().isMaximizedOrFullscreen()) return Source.HOME;
         if (NavigationBar.isSearchBarActive()) return Source.SEARCH;
-        NavigationButton nav = NavigationButton.getSelectedNavigationButton();
-        return nav == NavigationButton.SUBSCRIPTIONS ? Source.SUBSCRIPTIONS : Source.HOME;
+        NavigationBar.NavigationButton nav = NavigationBar.NavigationButton.getSelectedNavigationButton();
+        return nav == NavigationBar.NavigationButton.SUBSCRIPTIONS ? Source.SUBSCRIPTIONS : Source.HOME;
     }
 
     @Nullable

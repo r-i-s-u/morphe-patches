@@ -1,3 +1,10 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.patches.youtube.misc.playercontrols
 
 import app.morphe.patcher.Fingerprint
@@ -26,48 +33,13 @@ internal object PlayerControlsVisibilityEntityModelFingerprint : Fingerprint(
     )
 )
 
-private object YoutubeControlsOverlayFingerprint : Fingerprint(
-    returnType = "V",
-    parameters = listOf(),
-    filters = listOf(
-        methodCall(name = "setFocusableInTouchMode"),
-        resourceLiteral(ResourceType.ID, "inset_overlay_view_layout"),
-        resourceLiteral(ResourceType.ID, "scrim_overlay"),
-    )
-)
-
-internal object MotionEventFingerprint : Fingerprint(
-    classFingerprint = YoutubeControlsOverlayFingerprint,
-    returnType = "V",
-    parameters = listOf("Landroid/view/MotionEvent;"),
-    filters = listOf(
-        methodCall(name = "setTranslationY")
-    )
-)
-
-internal object PlayerControlsExtensionHookListenersExistFingerprint : Fingerprint(
-    definingClass = EXTENSION_CLASS,
-    name = "fullscreenButtonVisibilityCallbacksExist",
-    accessFlags = listOf(AccessFlags.PRIVATE, AccessFlags.STATIC),
-    returnType = "Z",
-    parameters = listOf()
-)
-
-internal object PlayerControlsExtensionHookFingerprint : Fingerprint(
-    definingClass = EXTENSION_CLASS,
-    name = "fullscreenButtonVisibilityChanged",
-    accessFlags = listOf(AccessFlags.PRIVATE, AccessFlags.STATIC),
-    returnType = "V",
-    parameters = listOf("Z"),
-)
-
-internal object PlayerTopControlsInflateFingerprint : Fingerprint(
+ internal object PlayerTopControlsInflateFingerprint : Fingerprint(
     accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
     returnType = "V",
     parameters = listOf(),
     filters = listOf(
         resourceLiteral(ResourceType.ID, "controls_layout_stub"),
-        methodCall(definingClass = "Landroid/view/ViewStub;", name = "inflate"),
+        methodCall(smali = "Landroid/view/ViewStub;->inflate()Landroid/view/View;"),
         opcode(Opcode.MOVE_RESULT_OBJECT, MatchAfterImmediately())
     )
 )
@@ -77,7 +49,7 @@ internal object PlayerBottomControlsInflateFingerprint : Fingerprint(
     parameters = listOf(),
     filters = listOf(
         resourceLiteral(ResourceType.ID, "bottom_ui_container_stub"),
-        methodCall(definingClass = "Landroid/view/ViewStub;", name = "inflate"),
+        methodCall(smali = "Landroid/view/ViewStub;->inflate()Landroid/view/View;"),
         opcode(Opcode.MOVE_RESULT_OBJECT, MatchAfterImmediately())
     )
 )
@@ -98,59 +70,45 @@ internal object PlayerBottomGradientScrimFingerprint : Fingerprint(
     )
 )
 
-internal object OverlayViewInflateFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "V",
-    parameters = listOf("Landroid/view/View;"),
-    filters = listOf(
-        resourceLiteral(ResourceType.ID, "heatseeker_viewstub"),
-        resourceLiteral(ResourceType.ID, "fullscreen_button"),
-        checkCast("Landroid/widget/ImageView;")
-    )
-)
-
-/**
- * Resolves to the class found in [PlayerTopControlsInflateFingerprint].
- */
-internal object ControlsOverlayVisibilityFingerprint : Fingerprint(
-    classFingerprint = PlayerTopControlsInflateFingerprint,
-    accessFlags = listOf(AccessFlags.PRIVATE, AccessFlags.FINAL),
-    returnType = "V",
-    parameters = listOf("Z", "Z"),
-)
-
 internal object PlayerBottomControlsExploderFeatureFlagFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "Z",
-    parameters = listOf(),
     filters = listOf(
         literal(45643739L)
     )
 )
 
 internal object PlayerControlsLargeOverlayButtonsFeatureFlagFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "Z",
-    parameters = listOf(),
     filters = listOf(
         literal(45709810L)
     )
 )
 
 internal object PlayerControlsFullscreenLargeButtonsFeatureFlagFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "Z",
-    parameters = listOf(),
     filters = listOf(
         literal(45686474L)
     )
 )
 
 internal object PlayerControlsButtonStrokeFeatureFlagFingerprint : Fingerprint(
-    accessFlags = listOf(AccessFlags.PUBLIC, AccessFlags.FINAL),
-    returnType = "Z",
-    parameters = listOf(),
     filters = listOf(
         literal(45713296)
+    )
+)
+
+internal object PlayerControlsModernAccessibilityFeatureFlagFingerprint : Fingerprint(
+    filters = listOf(
+        literal(45757309) // Not completely clear what this flag does.
+    )
+)
+
+internal object PlayerCommentTeaserFeatureFlagFingerprint : Fingerprint(
+    filters = listOf(
+        literal(45771730)
+    )
+)
+
+
+internal object RecycleViewScrollingFlagFingerprint : Fingerprint(
+    filters = listOf(
+        literal(45763727)
     )
 )

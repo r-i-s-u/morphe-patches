@@ -32,7 +32,7 @@ private val downloadsResourcePatch = resourcePatch {
                 sorting = Sorting.UNSORTED,
                 preferences = setOf(
                     SwitchPreference("morphe_external_downloader_action_button", summary = true),
-                    SwitchPreference("morphe_external_downloader_flyout_menu"),
+                    SwitchPreference("morphe_external_downloader_flyout_menu", summary = true),
                     TextPreference(
                         "morphe_external_downloader_name",
                         tag = "app.morphe.extension.shared.settings.preference.ExternalDownloaderPreference"
@@ -63,7 +63,7 @@ val downloadsPatch = bytecodePatch(
     compatibleWith(COMPATIBILITY_YOUTUBE_MUSIC)
 
     execute {
-        hookSpannableString(EXTENSION_CLASS, "onLithoTextLoaded")
+        hookSpannableString(EXTENSION_CLASS)
 
         CommandResolverFingerprint.method.cloneParameters().apply {
             // Add interface to get buffer.

@@ -1,15 +1,18 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.extension.youtube.patches;
 
-import static app.morphe.extension.shared.spoof.SpoofAppVersionPatch.isSpoofingToLessThan;
-import static app.morphe.extension.youtube.patches.VersionCheckPatch.IS_20_31_OR_GREATER;
-
 import android.view.View;
-import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 
-import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.Setting;
+import app.morphe.extension.shared.spoof.SpoofAppVersionPatch;
 import app.morphe.extension.youtube.settings.Settings;
 import app.morphe.extension.youtube.settings.YouTubeActivityHook;
 
@@ -19,16 +22,12 @@ public class LegacyPlayerControlsPatch {
     public static final class RestoreOldPlayerButtonsAvailability implements Setting.Availability {
         @Override
         public boolean isAvailable() {
-            return IS_20_31_OR_GREATER && !isSpoofingToLessThan("20.31.00");
+            return VersionCheckPatch.IS_20_31_OR_GREATER && !SpoofAppVersionPatch.isSpoofingToLessThan("20.31.00");
         }
     }
 
     public static final boolean RESTORE_OLD_PLAYER_BUTTONS =
             Settings.RESTORE_OLD_PLAYER_BUTTONS.get() || !YouTubeActivityHook.useBoldIcons(true);
-
-    private static boolean fullscreenButtonVisibilityCallbacksExist() {
-        return false; // Modified during patching if needed.
-    }
 
     /**
      * Injection point.
@@ -55,48 +54,17 @@ public class LegacyPlayerControlsPatch {
     /**
      * Injection point.
      */
-    public static void setFullscreenCloseButton(View imageButton) {
-        if (!fullscreenButtonVisibilityCallbacksExist()) {
-            return;
-        }
-
-        Logger.printDebug(() -> "Fullscreen button set");
-
-        // Add a global listener, since the protected method
-        // View#onVisibilityChanged() does not have any call backs.
-        imageButton.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
-            int lastVisibility = View.VISIBLE;
-
-            @Override
-            public void onGlobalLayout() {
-                try {
-                    final int visibility = imageButton.getVisibility();
-                    if (lastVisibility != visibility) {
-                        lastVisibility = visibility;
-
-                        Logger.printDebug(() -> "fullscreen button visibility: "
-                                + (visibility == View.VISIBLE ? "VISIBLE" :
-                                visibility == View.GONE ? "GONE" : "INVISIBLE"));
-
-                        fullscreenButtonVisibilityChanged(visibility == View.VISIBLE);
-                    }
-                } catch (Exception ex) {
-                    Logger.printDebug(() -> "OnGlobalLayoutListener failure", ex);
-                }
-            }
-        });
+    public static boolean usePlayerBottomControlsExploderLayout(boolean original) {
+        return !RESTORE_OLD_PLAYER_BUTTONS;
     }
-
-    // noinspection EmptyMethod
-    private static void fullscreenButtonVisibilityChanged(boolean isVisible) {
-        // Code added during patching.
-    }
-
 
     /**
      * Injection point.
      */
-    public static boolean usePlayerBottomControlsExploderLayout(boolean original) {
-        return !RESTORE_OLD_PLAYER_BUTTONS;
+    public static boolean allowModernPlayerLayoutFlags(boolean original) {
+        if (RESTORE_OLD_PLAYER_BUTTONS) {
+            return false; // Flag causes app crash on startup if old player buttons is used.
+        }
+        return original;
     }
 }

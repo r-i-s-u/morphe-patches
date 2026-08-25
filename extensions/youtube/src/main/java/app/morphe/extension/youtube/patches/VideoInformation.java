@@ -1,18 +1,39 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.extension.youtube.patches;
 
+import android.icu.text.NumberFormat;
+
+import java.util.Locale;
+
+import androidx.annotation.GuardedBy;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.patches.components.ContextInterface;
 import app.morphe.extension.youtube.patches.voiceovertranslation.VoiceOverTranslationPatch;
 import app.morphe.extension.youtube.shared.Event;
+import app.morphe.extension.youtube.shared.PlayerType;
 import app.morphe.extension.youtube.shared.ShortsPlayerState;
 import app.morphe.extension.youtube.shared.VideoState;
+import app.morphe.extension.youtube.patches.playback.speed.RememberPlaybackSpeedPatch;
+import app.morphe.extension.youtube.settings.Settings;
 
 /**
  * Hooking class for the current playing video.
@@ -25,6 +46,22 @@ public final class VideoInformation {
         boolean patch_seekTo(long videoTime);
         void patch_seekToRelative(long videoTimeOffset);
         long patch_getVideoTime();
+    }
+
+    /**
+     * Interface to use obfuscated methods.
+     */
+    public interface PlaybackSpeedMenuInterface {
+        // Method is added during patching.
+        void patch_setSpeed(float speed);
+    }
+
+    /**
+     * Interface to use obfuscated methods.
+     */
+    public interface ExoPlayerImpl {
+        // Method is added during patching.
+        void patch_setPlaybackParameters(float speed, float pitch);
     }
 
     /**
@@ -55,8 +92,27 @@ public final class VideoInformation {
      */
     private static final String VIDEO_QUALITY_PREMIUM_NAME = "Premium";
 
-    private static final float DEFAULT_YOUTUBE_PLAYBACK_SPEED = 1.0f;
-    public static boolean savePlaybackSpeed = false;
+    private static final float DEFAULT_PLAYBACK_SPEED = 1.0f;
+    /**
+     * Pattern of the native playback speed panel.
+     */
+    private static final Pattern PLAYBACK_SPEED_PATTERN = Pattern.compile("\\d+\\.\\d{2}x");
+    /**
+     * Maximum playback speed, inclusive.  Custom speeds must be this or less.
+     * <p>
+     * Going over 8x does not increase the actual playback speed any higher,
+     * and the UI selector starts flickering and acting weird.
+     * Over 10x and the speeds show up out of order in the UI selector.
+     */
+    public static final float PLAYBACK_SPEED_MAXIMUM = 8;
+
+    private static final float DEFAULT_PLAYBACK_AUDIO_PITCH = 1.0f;
+    
+    /**
+     * Maximum playback audio pitch, inclusive.
+     */
+    public static final float PLAYBACK_AUDIO_PITCH_MAXIMUM = 8;
+
     /**
      * Prefix present in all Short player parameters signature.
      */
@@ -64,6 +120,7 @@ public final class VideoInformation {
 
     private static WeakReference<PlaybackController> playerControllerRef = new WeakReference<>(null);
     private static WeakReference<PlaybackController> mdxPlayerDirectorRef = new WeakReference<>(null);
+    private static WeakReference<ExoPlayerImpl> exoPlayerImplRef = new WeakReference<>(null);
     private static String channelId = "";
     private static String channelName = "";
     private static String videoId = "";
@@ -75,13 +132,62 @@ public final class VideoInformation {
     private static volatile boolean videoIdIsShort;
 
     /**
-     * The current playback speed
+     * The current playback speed.
      */
-    private static float playbackSpeed = DEFAULT_YOUTUBE_PLAYBACK_SPEED;
+    private static float playbackSpeed = DEFAULT_PLAYBACK_SPEED;
+    /**
+     * The current playback speed in native panel.
+     */
+    private static String playbackSpeedFormattedString = "";
+    /**
+     * Fires whenever the playback speed changes.
+     */
+    public static final Event<Float> onPlaybackSpeedChange = new Event<>();
+
+    /**
+     * The current playback audio pitch
+     */
+    private static float playbackAudioPitch = DEFAULT_PLAYBACK_AUDIO_PITCH;
+    private static boolean playbackAudioPitchNeedsApplying;
+    /**
+     * The current playback speed in native panel.
+     */
+    private static String playbackAudioPitchFormattedString = "";
+    /**
+     * Fires whenever the playback audio pitch changes.
+     */
+    public static final Event<Float> onPlaybackAudioPitchChange = new Event<>();
+
+    private static boolean isPatchIncluded() {
+        return false;  // Modified during patching.
+    }
+
+    private static boolean isPlaybackAudioPitchEnabled() {
+        return isPatchIncluded() && Settings.ENABLE_PLAYBACK_AUDIO_PITCH.get();
+    }
+
+    private static boolean isPlaybackAudioPitchLinked() {
+        return isPlaybackAudioPitchEnabled() && !Settings.PLAYBACK_AUDIO_TIME_STRETCHING.get();
+    }
 
     private static int desiredVideoResolution = AUTOMATIC_VIDEO_QUALITY_VALUE;
 
     private static boolean qualityNeedsUpdating;
+
+    @GuardedBy("itself")
+    private static final NumberFormat speedFormatter = NumberFormat.getNumberInstance();
+
+    static {
+        // Use same 2 digit format as built in speed picker,
+        speedFormatter.setMinimumFractionDigits(2);
+        speedFormatter.setMaximumFractionDigits(2);
+    }
+
+    /**
+     * The current VideoQualityMenuInterface, set during setPlaybackSpeedMenu.
+     */
+    @Nullable
+    private static PlaybackSpeedMenuInterface currentPlaybackSpeedMenuInterface;
 
     /**
      * The available qualities of the current video.
@@ -100,7 +206,7 @@ public final class VideoInformation {
      * The current VideoQualityMenuInterface, set during setVideoQuality.
      */
     @Nullable
-    private static VideoQualityMenuInterface currentMenuInterface;
+    private static VideoQualityMenuInterface currentQualityMenuInterface;
 
     /**
      * Callback for when the current quality changes.
@@ -131,28 +237,36 @@ public final class VideoInformation {
         try {
             Logger.printDebug(() -> "newVideoStarted");
 
-            savePlaybackSpeed = false;
             playerControllerRef = new WeakReference<>(Objects.requireNonNull(playerController));
             videoLength = 0;
             channelId = "";
             channelName = "";
             String videoTitle = "";
-            boolean isLive = false;
-            playbackSpeed = DEFAULT_YOUTUBE_PLAYBACK_SPEED;
+            // playbackSpeed = DEFAULT_PLAYBACK_SPEED; // Captured at video start, interferes otherwise.
+            playbackSpeedFormattedString = "";
+            final float audioPitchOverride = RememberPlaybackSpeedPatch.getPlaybackAudioPitchOverride();
+            final PlayerType playerType = PlayerType.getCurrent();
+            final boolean noWatchWhilePlayerActive = playerType.isNoneOrHidden() ||
+                    playerType == PlayerType.INLINE_MINIMAL;
+            final float newPlaybackAudioPitch = audioPitchOverride > 0.0f &&
+                    isPlaybackAudioPitchEnabled() && Settings.PLAYBACK_AUDIO_TIME_STRETCHING.get()
+                    ? audioPitchOverride
+                    : !isPlaybackAudioPitchEnabled() || noWatchWhilePlayerActive
+                            ? DEFAULT_PLAYBACK_AUDIO_PITCH
+                            : playbackAudioPitch;
+            if (playbackAudioPitch != newPlaybackAudioPitch ||
+                    (noWatchWhilePlayerActive && newPlaybackAudioPitch != DEFAULT_PLAYBACK_AUDIO_PITCH)) {
+                playbackAudioPitch = newPlaybackAudioPitch;
+                playbackAudioPitchNeedsApplying = true;
+            }
+            playbackAudioPitchFormattedString = "";
             desiredVideoResolution = AUTOMATIC_VIDEO_QUALITY_VALUE;
             currentQualities = null;
-            currentMenuInterface = null;
+            currentQualityMenuInterface = null;
             setCurrentQuality(null);
         } catch (Exception ex) {
             Logger.printException(() -> "initialize failure", ex);
         }
-    }
-
-    /**
-     * Injection point.
-     */
-    public static void enableSavePlaybackSpeed() {
-        Utils.runOnMainThreadDelayed(() -> savePlaybackSpeed = true, 500);
     }
 
     /**
@@ -165,6 +279,19 @@ public final class VideoInformation {
             mdxPlayerDirectorRef = new WeakReference<>(Objects.requireNonNull(mdxPlayerDirector));
         } catch (Exception ex) {
             Logger.printException(() -> "Failed to initialize MDX", ex);
+        }
+    }
+
+    /**
+     * Injection point.
+     *
+     * @param exoPlayerImpl instance that can set the playback parameters directly.
+     */
+    public static void initializeExoPlayerImpl(@NonNull ExoPlayerImpl exoPlayerImpl) {
+        try {
+            exoPlayerImplRef = new WeakReference<>(Objects.requireNonNull(exoPlayerImpl));
+        } catch (Exception ex) {
+            Logger.printException(() -> "Failed to initialize ExoPlayer", ex);
         }
     }
 
@@ -257,12 +384,81 @@ public final class VideoInformation {
     }
 
     /**
+     * Records a new playback speed, updates the formatted string, and fires {@link #onPlaybackSpeedChange}.
+     *
+     * @return true if the speed actually changed.
+     */
+    private static boolean updatePlaybackSpeedValue(float speed) {
+        if (playbackSpeed == speed) {
+            return false;
+        }
+
+        playbackSpeed = speed;
+        Logger.printDebug(() -> "Video speed updated: " + playbackSpeed);
+        playbackSpeedFormattedString = formatSpeedStringX(speed);
+        Utils.runOnMainThreadNowOrLater(() -> onPlaybackSpeedChange.invoke(speed));
+        if (isPlaybackAudioPitchLinked() || (isPatchIncluded() && !isPlaybackAudioPitchEnabled())) {
+            updatePlaybackAudioPitchValue(speed);
+        }
+        return true;
+    }
+
+    /**
+     * Records a new playback audio pitch, updates the formatted string, and fires {@link #onPlaybackAudioPitchChange}.
+     *
+     * @return true if the pitch actually changed.
+     */
+    private static boolean updatePlaybackAudioPitchValue(float pitch) {
+        if (!isPlaybackAudioPitchEnabled()) {
+            pitch = 1.0f;
+        }
+        if (playbackAudioPitch == pitch) {
+            return false;
+        }
+
+        playbackAudioPitch = pitch;
+        Logger.printDebug(() -> "Audio pitch updated: " + playbackAudioPitch);
+        playbackAudioPitchFormattedString = formatSpeedStringX(pitch);
+        final float updatedPitch = pitch;
+        Utils.runOnMainThreadNowOrLater(() -> onPlaybackAudioPitchChange.invoke(updatedPitch));
+        if (isPlaybackAudioPitchLinked()) {
+            updatePlaybackSpeedValue(pitch);
+        }
+        return true;
+    }
+
+    /**
      * Injection point.
      */
     public static void videoSpeedChanged(float currentVideoSpeed) {
-        if (playbackSpeed != currentVideoSpeed) {
-            Logger.printDebug(() -> "Video speed changed: " + currentVideoSpeed);
-            playbackSpeed = currentVideoSpeed;
+        Logger.printDebug(() -> "Video speed changed: " + currentVideoSpeed);
+        // An exception occurs when the playback speed dialog is opened by an overlay button while 'Restore old playback speed menu' is off.
+        // Update the formatted string value to avoid the exception.
+        updatePlaybackSpeedValue(currentVideoSpeed);
+        if (playbackAudioPitchNeedsApplying && Settings.PLAYBACK_SPEED_DEFAULT.get() <= 0.0f) {
+            playbackAudioPitchNeedsApplying = false;
+            final float pitch = playbackAudioPitch;
+            Utils.runOnMainThreadNowOrLater(() -> setPlaybackParameters(currentVideoSpeed, pitch));
+        }
+    }
+
+    /**
+     * Not injected.
+     * Only CustomPlaybackInterface sets audio pitch.
+     */
+    public static void setAudioPitch(float currentAudioPitch) {
+        Logger.printDebug(() -> "Audio pitch set to: " + currentAudioPitch);
+        final float previousPlaybackSpeed = playbackSpeed;
+        if (!updatePlaybackAudioPitchValue(currentAudioPitch)) {
+            return;
+        }
+
+        RememberPlaybackSpeedPatch.userSelectedPlaybackAudioPitch(playbackAudioPitch);
+        if (!Settings.PLAYBACK_AUDIO_TIME_STRETCHING.get() && previousPlaybackSpeed != playbackSpeed) {
+            RememberPlaybackSpeedPatch.userSelectedPlaybackSpeed(playbackSpeed);
+            changePlaybackSpeed(playbackSpeed);
+        } else {
+            setPlaybackParameters(playbackSpeed, playbackAudioPitch);
         }
     }
 
@@ -274,7 +470,76 @@ public final class VideoInformation {
      */
     public static void userSelectedPlaybackSpeed(float userSelectedPlaybackSpeed) {
         Logger.printDebug(() -> "User selected playback speed: " + userSelectedPlaybackSpeed);
-        playbackSpeed = userSelectedPlaybackSpeed;
+        updatePlaybackSpeedValue(userSelectedPlaybackSpeed);
+        if (isPlaybackAudioPitchLinked()) {
+            RememberPlaybackSpeedPatch.userSelectedPlaybackAudioPitch(userSelectedPlaybackSpeed);
+        }
+
+        // An exception occurs when the playback speed dialog is opened by an overlay button while 'Restore old playback speed menu' is off.
+        // Update the formatted string value to avoid the exception.
+        playbackSpeedFormattedString = formatSpeedStringX(userSelectedPlaybackSpeed);
+    }
+
+    /**
+     * @param speed The playback speed value to format using minimum of 2 fractional digits.
+     * @return A string representation of the speed with 'x' (e.g. "1.25x" or "1.00x").
+     */
+    public static String formatSpeedStringX(float speed) {
+        return formatSpeedStringX(speed, 2);
+    }
+
+    /**
+     * @param speed The playback speed value to format
+     * @param minFractionalDigits The minimum number of fractional digits to use.
+     * @return A string representation of the speed with 'x' (e.g. "1.25x" or "1.00x").
+     */
+    public static String formatSpeedStringX(float speed, int minFractionalDigits) {
+        return formatSpeedStringX(speed, minFractionalDigits, true);
+    }
+
+    /**
+     * @param speed The playback speed value to format.
+     * @param minFractionalDigits The minimum number of fractional digits to use.
+     * @param includeX If 'x' character is appended to the speed.
+     */
+    public static String formatSpeedStringX(float speed, int minFractionalDigits, boolean includeX) {
+        synchronized (speedFormatter) {
+            speedFormatter.setMinimumFractionDigits(minFractionalDigits);
+
+            String speedFormatted = speedFormatter.format(speed);
+            return includeX
+                    ? speedFormatted + 'x'
+                    : speedFormatted;
+        }
+    }
+
+    private static final double LOG_2 = Math.log(2.0);
+    private static final double SEMITONES_PER_OCTAVE = 12.0;
+
+    /**
+     * @param pitch The playback audio pitch value to format.
+     * @return pitch formatted as "X.XXx (Nst)" with signed one-decimal semitone offset.
+     */
+    public static String formatAudioPitchStringX(float pitch) {
+        if (!(pitch > 0f)) {
+            throw new IllegalArgumentException("pitch must be a positive non infinite value: " + pitch);
+        }
+
+        final double semitones = SEMITONES_PER_OCTAVE * (Math.log(pitch) / LOG_2);
+        String formattedSemitones = String.format(Locale.US, "%.1f", semitones);
+        if (formattedSemitones.equals("-0.0")) {
+            formattedSemitones = "0.0";
+        }
+        // Decide the sign from the *formatted* string, not the raw value,
+        // so values that round to zero never get a stray "+".
+        String signedSemitones = formattedSemitones.startsWith("-") || formattedSemitones.equals("0.0")
+                ? formattedSemitones
+                : "+" + formattedSemitones;
+
+        String speed = formatSpeedStringX(pitch);
+        return Utils.isRightToLeftLocale()
+                ? String.format(Locale.US, "(%sst) %s", signedSemitones, speed)
+                : String.format(Locale.US, "%s (%sst)", speed, signedSemitones);
     }
 
     /**
@@ -463,6 +728,13 @@ public final class VideoInformation {
     }
 
     /**
+     * @return The current playback audio pitch.
+     */
+    public static float getPlaybackAudioPitch() {
+        return playbackAudioPitch;
+    }
+
+    /**
      * Length of the current video playing.  Includes Shorts.
      *
      * @return The length of the video in milliseconds.
@@ -528,23 +800,150 @@ public final class VideoInformation {
     }
 
     /**
-     * Overrides the current playback speed.
-     * Rest of the implementation added by patch.
+     * Forcefully changes the playback speed of the currently playing video.
      */
-    public static void overridePlaybackSpeed(float speedOverride) {
-        Logger.printDebug(() -> "Overriding playback speed to: " + speedOverride);
+    public static void changePlaybackSpeed(float playbackSpeed) {
+        Logger.printDebug(() -> "Video speed force changed: " + playbackSpeed);
+        Utils.verifyOnMainThread();
+
+        if (currentPlaybackSpeedMenuInterface == null) {
+            Logger.LogMessage logMessage = () -> "Debug: Cannot change playback speed, menu interface is null";
+            if (Settings.DEBUG.get()) {
+                Logger.printException(logMessage);
+            } else {
+                Logger.printDebug(logMessage);
+            }
+            return;
+        }
+        if (playbackSpeed <= 0 || playbackSpeed > PLAYBACK_SPEED_MAXIMUM) {
+            Logger.printException(() -> "Invalid playback speed: " + playbackSpeed);
+            return;
+        }
+
+        final boolean playbackSpeedChanged = updatePlaybackSpeedValue(playbackSpeed);
+        if (isPlaybackAudioPitchLinked()) {
+            updatePlaybackAudioPitchValue(playbackSpeed);
+        }
+        final float playbackAudioPitchToApply = playbackAudioPitch;
+        currentPlaybackSpeedMenuInterface.patch_setSpeed(playbackSpeed);
+        if (playbackAudioPitchNeedsApplying && !playbackSpeedChanged) {
+            setPlaybackParameters(playbackSpeed, playbackAudioPitchToApply);
+        }
+        playbackAudioPitchNeedsApplying = false;
+    }
+
+    /**
+     * Forcefully changes the playback parameters (speed and pitch) of the current ExoPlayerImpl instance.
+     * Avoid using this for just video speed changes, YT won't update in other places.
+     */
+    public static void setPlaybackParameters(float speed, float pitch) {
+        Utils.verifyOnMainThread();
+        
+        if (speed <= 0 || speed > PLAYBACK_SPEED_MAXIMUM) {
+            Logger.printException(() -> "Invalid playback speed: " + speed);
+            return;
+        }
+        if (pitch <= 0 || pitch > PLAYBACK_AUDIO_PITCH_MAXIMUM) {
+            Logger.printException(() -> "Invalid playback pitch: " + pitch);
+            return;
+        }
+
+        ExoPlayerImpl exoPlayerImpl = exoPlayerImplRef.get();
+        if (exoPlayerImpl != null) {
+            exoPlayerImpl.patch_setPlaybackParameters(speed, pitch);
+            Logger.printDebug(() -> "Video playbackParameters changed, speed: " + speed + " pitch: " + pitch);
+        } else {
+            Logger.LogMessage logMessage = () -> "Debug: Cannot change speed parameters, menu interface is null";
+            if (Settings.DEBUG.get()) {
+                Logger.printException(logMessage);
+            } else {
+                Logger.printDebug(logMessage);
+            }
+        }
     }
 
     /**
      * Injection point.
-     *
+     */
+    public static void setPlaybackSpeedMenu(PlaybackSpeedMenuInterface menu) {
+        currentPlaybackSpeedMenuInterface = menu;
+    }
+
+    /**
+     * Injection point.
+     */
+    public static void onNativePlaybackSpeedPanelLoaded(Object context, CharSequence original) {
+        if (context instanceof ContextInterface contextInterface) {
+            try {
+                String identifier = contextInterface.patch_getIdentifier();
+                if (identifier == null || !identifier.startsWith("playback_rate_selector_menu_sheet.e")) {
+                    return;
+                }
+                String path = contextInterface.patch_getPathBuilder().toString();
+                if (!path.endsWith("|ContainerType|ContainerType|ContainerType|TextType|")) {
+                    return;
+                }
+                String text = Objects.toString(original);
+                if (text.length() == 5) {
+                    Matcher matcher = PLAYBACK_SPEED_PATTERN.matcher(text);
+                    if (matcher.matches()) {
+                        setPlaybackSpeedFormattedString(text, Float.parseFloat(text.substring(0, 4)));
+                    }
+                }
+            } catch (Exception ex) {
+                Logger.printException(() -> "onNativePlaybackSpeedPanelLoaded failed", ex);
+            }
+        }
+    }
+
+    /**
+     * Called when the native playback speed panel is opened.
+     * @param newlyLoadedPlaybackSpeedFormattedString The current formatted playback speed string.
+     */
+    private static void setPlaybackSpeedFormattedString(
+            String newlyLoadedPlaybackSpeedFormattedString,
+            float newlyLoadedPlaybackSpeed
+    ) {
+        if (playbackSpeedFormattedString.isEmpty()) {
+            // The user has not yet changed the playback speed in the native playback speed panel.
+            // Save the string to the field (playbackSpeedFormattedString) and do nothing.
+            playbackSpeedFormattedString = newlyLoadedPlaybackSpeedFormattedString;
+            return;
+        }
+
+        // Playback speed changed in native playback speed panel.
+        if (!playbackSpeedFormattedString.equals(newlyLoadedPlaybackSpeedFormattedString)) {
+            playbackSpeedFormattedString = newlyLoadedPlaybackSpeedFormattedString;
+
+            final float previousPlaybackAudioPitch = playbackAudioPitch;
+            VideoInformation.userSelectedPlaybackSpeed(newlyLoadedPlaybackSpeed);
+            if (previousPlaybackAudioPitch != playbackAudioPitch) {
+                final float pitch = playbackAudioPitch;
+                Utils.runOnMainThreadNowOrLater(() ->
+                        setPlaybackParameters(newlyLoadedPlaybackSpeed, pitch));
+            }
+
+            // Rest of the implementation added by patch.
+            // RememberPlaybackSpeedPatch.userSelectedPlaybackSpeed(newlyLoadedPlaybackSpeed);
+            // PlaybackSpeedDialogButton.videoSpeedChanged(newlyLoadedPlaybackSpeed);
+        }
+    }
+
+    /**
+     * Injection point.
+     * CustomPlaybackInterface sets video speed through this.
      * @param newlyLoadedPlaybackSpeed The current playback speed.
      */
     public static void setPlaybackSpeed(float newlyLoadedPlaybackSpeed) {
-        if (playbackSpeed != newlyLoadedPlaybackSpeed) {
-            Logger.printDebug(() -> "Video speed changed: " + newlyLoadedPlaybackSpeed);
-            playbackSpeed = newlyLoadedPlaybackSpeed;
+        if (!updatePlaybackSpeedValue(newlyLoadedPlaybackSpeed)) {
+            return;
         }
+
+        RememberPlaybackSpeedPatch.userSelectedPlaybackSpeed(playbackSpeed);
+        if (isPlaybackAudioPitchLinked()) {
+            RememberPlaybackSpeedPatch.userSelectedPlaybackAudioPitch(playbackAudioPitch);
+        }
+        changePlaybackSpeed(playbackSpeed);
     }
 
     /**
@@ -572,11 +971,11 @@ public final class VideoInformation {
     public static void changeQuality(VideoQualityInterface quality) {
         Utils.verifyOnMainThread();
 
-        if (currentMenuInterface == null) {
+        if (currentQualityMenuInterface == null) {
             Logger.printException(() -> "Cannot change quality, menu interface is null");
             return;
         }
-        currentMenuInterface.patch_setQuality(quality);
+        currentQualityMenuInterface.patch_setQuality(quality);
     }
 
     /**
@@ -591,7 +990,7 @@ public final class VideoInformation {
                 if (suffixIndex > 0) {
                     final int fixedQuality = Integer.parseInt(name.substring(0, suffixIndex));
                     Logger.printDebug(() -> "Fixing wrong quality resolution from: " +
-                            name + "(" + quality + ") to: " + name + ")" + fixedQuality + ")");
+                            name + "(" + quality + ") to: " + name + "(" + fixedQuality + ")");
                     return fixedQuality;
                 }
             }
@@ -611,7 +1010,7 @@ public final class VideoInformation {
     public static int setVideoQuality(VideoQualityInterface[] qualities, VideoQualityMenuInterface menu, int originalQualityIndex) {
         try {
             Utils.verifyOnMainThread();
-            currentMenuInterface = menu;
+            currentQualityMenuInterface = menu;
 
             final boolean availableQualitiesChanged = (currentQualities == null)
                     || !Arrays.equals(currentQualities, qualities);

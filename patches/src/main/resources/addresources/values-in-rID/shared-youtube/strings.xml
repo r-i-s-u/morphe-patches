@@ -1,8 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Shared with YouTube and YT Music -->
 <!--
+
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -20,6 +21,25 @@ Second \"item\" text"</string>
   <string name="morphe_restart_first_run">Mulai ulang untuk menyelesaikan penyiapan</string>
   <!-- layout.branding.baseCustomBrandingPatch -->
   <string name="morphe_custom_branding_name_title">Nama aplikasi</string>
+  <!-- layout.theme.baseThemePatch -->
+  <string name="morphe_theme_color_dark_title">Latar belakang tema gelap</string>
+  <string name="morphe_theme_color_dark_entry_2">Hitam pekat</string>
+  <string name="morphe_theme_color_dark_entry_3">Material You (Hitam murni)</string>
+  <string name="morphe_theme_color_dark_entry_9">Klasik YouTube</string>
+  <string name="morphe_theme_color_dark_entry_10">Pink tua</string>
+  <string name="morphe_theme_color_dark_entry_11">Biru tua</string>
+  <string name="morphe_theme_color_dark_entry_12">Hijau tua</string>
+  <string name="morphe_theme_color_dark_entry_13">Kuning tua</string>
+  <string name="morphe_theme_color_dark_entry_14">Oranye tua</string>
+  <string name="morphe_theme_color_dark_entry_15">Merah tua</string>
+  <string name="morphe_theme_color_dark_custom_title">Latar belakang gelap kustom</string>
+  <string name="morphe_theme_color_dark_custom_summary">Atur warna latar belakang tema gelap</string>
+  <string name="morphe_theme_color_entry_1">Bawaan aplikasi</string>
+  <string name="morphe_theme_color_entry_4">Material You (Netral)</string>
+  <string name="morphe_theme_color_entry_5">Material You (Utama)</string>
+  <string name="morphe_theme_color_entry_6">Material You (Sekunder)</string>
+  <string name="morphe_theme_color_entry_7">Material You (Tersier)</string>
+  <string name="morphe_theme_color_custom_entry">Khusus</string>
   <!-- interaction.downloads.downloadsPatch -->
   <string name="morphe_external_downloader_screen_title">Unduhan eksternal</string>
   <string name="morphe_external_downloader_name_title">Nama paket pengunduh</string>
@@ -103,17 +123,6 @@ Untuk masuk, tekan lanjutkan di bawah ini"</string>
   <string name="morphe_oauth2_connection_failure_auth_error">Tidak dapat masuk ke VR: %s</string>
   <string name="morphe_oauth2_toast_reset">Keluar dari Android VR</string>
   <string name="morphe_oauth2_toast_invalid">Token masuk VR tidak sah, coba masuk ke VR lagi</string>
-  <string name="morphe_spoof_video_streams_disable_player_js_update_title">Nonaktifkan pembaruan pemutar JavaScript</string>
-  <string name="morphe_spoof_video_streams_disable_player_js_update_summary">"Mengunci JavaScript pemain ke versi tertentu
-
-• Hash JavaScript pemain yang valid diperlukan
-• Hash JavaScript pemain berlaku selama sekitar satu bulan, dan hash yang kedaluwarsa akan dicabut oleh GVS
-• Pemutaran gagal jika hash dicabut"</string>
-  <string name="morphe_spoof_video_streams_disable_player_js_update_user_dialog_message">"Anda harus memberikan hash pemutar JavaScript yang sah.
-
-Pemutaran akan gagal jika hash pemutar JavaScript sudah kedaluwarsa."</string>
-  <string name="morphe_spoof_video_streams_player_js_hash_value_title">Hash pemutar JavaScript</string>
-  <string name="morphe_spoof_video_streams_player_js_hash_value_summary">Masukkan hash pemutar JavaScript yang sah</string>
   <!-- misc.quic.disableQUICProtocolPatch -->
   <string name="morphe_disable_quic_protocol_title">Nonaktifkan protokol QUIC</string>
   <!-- misc.audio.drc.disableDRCAudioPatch  -->
@@ -142,8 +151,9 @@ Pemutaran akan gagal jika hash pemutar JavaScript sudah kedaluwarsa."</string>
   <string name="morphe_proxy_allow_direct_fallback_summary">Terhubung secara langsung jika proksi gagal</string>
   <!-- ad.hideFullscreenAdsPatch -->
   <string name="morphe_hide_fullscreen_ads_title">Sembunyikan iklan layar penuh</string>
-  <!-- 'Spoof video streams' should be the same translation used for 'morphe_spoof_video_streams_screen_title'. -->
-  <string name="morphe_force_original_audio_not_available">Untuk menggunakan fitur ini, ubah \'Palsukan aliran video\' ke Android Reel atau TV</string>
+  <!-- 'Spoof video streams' should match the language used in 'morphe_spoof_video_streams_screen_title'.
+          'Android Studio' and 'Android VR Downgraded' must be kept untranslated. -->
+  <string name="morphe_force_original_audio_not_available">Untuk menggunakan fitur ini, ubah \'Palsukan aliran video\' ke klien apa pun kecuali \'Android Studio\' dan \'Android VR Downgraded\'</string>
   <!-- misc.privacy.sanitizeSharingLinksPatch -->
   <string name="morphe_sanitize_sharing_links_title">Bersihkan tautan berbagi</string>
   <string name="morphe_sanitize_sharing_links_summary">Menghapus parameter kueri pelacakan dari tautan yang dibagikan</string>
@@ -167,6 +177,13 @@ Namun, mengaktifkan ini juga akan mencatat beberapa data pengguna seperti alamat
   <!-- 'Component path builder strings' is the technical name for identifying the Litho UI layout items to hide. This is an advanced feature and most users will never use this. -->
   <string name="morphe_custom_filter_strings_summary">Daftar string pembuat jalur komponen yang akan disaring, dipisahkan oleh baris baru</string>
   <string name="morphe_custom_filter_toast_invalid_syntax">Penyaring khusus tidak sah: %s</string>
+  <!-- layout.hide.settingsmenu.hideSettingsMenuFilterPatch -->
+  <string name="morphe_settings_menu_filter_screen_title">Filter menu Pengaturan</string>
+  <string name="morphe_settings_menu_filter_screen_summary">Sembunyikan item di layar pengaturan aplikasi standar berdasarkan nama yang terlihat</string>
+  <string name="morphe_settings_menu_filter_picker_empty">Buka layar pengaturan aplikasi standar sekali untuk mengisi daftar</string>
+  <!-- interaction.dialog.removeViewerDiscretionDialogPatch -->
+  <string name="morphe_remove_viewer_discretion_dialog_title">Hapus dialog pembatasan penonton</string>
+  <string name="morphe_remove_viewer_discretion_dialog_summary">Ini tidak mengabaikan batasan usia. Hanya otomatis menerimanya</string>
   <!-- misc.spoof.appversion.spoofAppVersionPatch -->
   <string name="morphe_spoof_app_version_title">Palsukan versi aplikasi</string>
   <string name="morphe_spoof_app_version_summary">Mengelabui server agar mengira Anda menggunakan versi aplikasi yang lebih lama untuk mengembalikan fitur UI lama</string>
@@ -176,4 +193,42 @@ Ini akan mengubah tampilan dan fitur aplikasi, tetapi efek samping yang tidak di
 
 Jika kemudian dimatikan, disarankan untuk menghapus data aplikasi untuk mencegah kerusakan UI."</string>
   <string name="morphe_spoof_app_version_target_title">Target versi aplikasi yang dipalsukan</string>
+  <!-- layout.returnyoutubedislike.returnYouTubeDislikePatch -->
+  <!-- Brief notification (toast) shown if network connection times out. Translations of this should not be longer than the original English text, otherwise the text can be clipped and not entirely shown. -->
+  <string name="morphe_ryd_failure_connection_timeout">Dislike sementara tidak tersedia (waktu API habis)</string>
+  <string name="morphe_ryd_failure_connection_status_code">Dislike tidak tersedia (status %d)</string>
+  <string name="morphe_ryd_failure_client_rate_limit_requested">Dislike tidak tersedia (pembatasan API klien)</string>
+  <string name="morphe_ryd_failure_generic">Dislike tidak tersedia (%s)</string>
+  <!-- Video likes have been set to hidden by the video uploader. -->
+  <string name="morphe_ryd_video_likes_hidden_by_video_owner">Disembunyikan oleh pemilik</string>
+  <string name="morphe_ryd_enabled_title">Aktifkan Return YouTube Dislike</string>
+  <string name="morphe_ryd_dislike_percentage_title">Tampilkan dislike sebagai persentase</string>
+  <string name="morphe_ryd_dislike_percentage_summary">Menampilkan jumlah tidak suka sebagai persentase dari jumlah suka, bukan sebagai angka</string>
+  <!-- Translations should match the language used in 'morphe_sb_enable_compact_skip_button'. -->
+  <string name="morphe_ryd_compact_layout_title">Gunakan tombol Suka ringkas</string>
+  <string name="morphe_ryd_compact_layout_summary">Mengurangi lebar tombol Suka untuk menghemat ruang</string>
+  <string name="morphe_ryd_estimated_like_title">Tampilkan perkiraan suka</string>
+  <string name="morphe_ryd_estimated_like_summary">Menampilkan perkiraan jumlah suka pada video di mana pembuatnya telah menonaktifkan fitur suka</string>
+  <string name="morphe_ryd_toast_on_connection_error_title">Tampilkan peringatan kesalahan sambungan</string>
+  <string name="morphe_ryd_toast_on_connection_error_summary">Menampilkan pemberitahuan saat server Return YouTube Dislike tidak tersedia</string>
+  <string name="morphe_ryd_attribution_summary">"Data disediakan oleh API Return YouTube Dislike
+
+Ketuk di sini untuk membuka ReturnYouTubeDislike.com"</string>
+  <!-- Statistic strings are shown in the settings only when Morphe debug mode is enabled. Typical users will never see these. -->
+  <string name="morphe_ryd_statistics_category_title">Statistik API Return YouTube Dislike untuk perangkat ini</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeAverage_title">Waktu respons API, rata-rata</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeMin_title">Waktu respons API, minimum</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeMax_title">Waktu respons API, maksimum</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeLast_title">Waktu respons API, media terakhir</string>
+  <string name="morphe_ryd_statistics_getFetchCallResponseTimeLast_rate_limit_summary">Dislike sementara tidak tersedia - Batas kuota API klien berlaku</string>
+  <string name="morphe_ryd_statistics_getFetchCallCount_title">API mengambil vote, jumlah dari panggilan</string>
+  <string name="morphe_ryd_statistics_getFetchCallCount_zero_summary">Tidak ada panggilan jaringan yang terjadi</string>
+  <string name="morphe_ryd_statistics_getFetchCallCount_non_zero_summary">%d panggilan jaringan dilakukan</string>
+  <string name="morphe_ryd_statistics_getFetchCallNumberOfFailures_title">API mengambil vote, jumlah kegagalan</string>
+  <string name="morphe_ryd_statistics_getFetchCallNumberOfFailures_zero_summary">Tidak ada panggilan jaringan yang gagal</string>
+  <string name="morphe_ryd_statistics_getFetchCallNumberOfFailures_non_zero_summary">%d panggilan jaringan gagal</string>
+  <string name="morphe_ryd_statistics_getNumberOfRateLimitRequestsEncountered_title">Batas kuota klien API</string>
+  <string name="morphe_ryd_statistics_getNumberOfRateLimitRequestsEncountered_zero_summary">Tidak ada batas kuota klien yang terdeteksi</string>
+  <string name="morphe_ryd_statistics_getNumberOfRateLimitRequestsEncountered_non_zero_summary">Batas kuota klien terdeteksi %d kali</string>
+  <string name="morphe_ryd_statistics_millisecond_text">%d milidetik</string>
 </resources>

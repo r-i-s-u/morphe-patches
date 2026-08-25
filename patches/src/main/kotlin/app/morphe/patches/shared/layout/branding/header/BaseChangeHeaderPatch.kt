@@ -14,13 +14,12 @@ import app.morphe.patcher.patch.PatchException
 import app.morphe.patcher.patch.ResourcePatch
 import app.morphe.patcher.patch.ResourcePatchBuilder
 import app.morphe.patcher.patch.ResourcePatchContext
+import app.morphe.patcher.patch.folderOption
 import app.morphe.patcher.patch.resourcePatch
-import app.morphe.patcher.patch.stringOption
 import app.morphe.patches.shared.misc.settings.preference.BasePreferenceScreen
 import app.morphe.patches.shared.misc.settings.preference.ListPreference
 import app.morphe.util.ResourceGroup
 import app.morphe.util.copyResources
-import app.morphe.util.trimIndentMultiline
 import java.io.File
 
 const val CUSTOM_HEADER_RESOURCE_NAME = "morphe_header_custom"
@@ -41,7 +40,7 @@ internal fun baseChangeHeaderPatch(
         "${CUSTOM_HEADER_RESOURCE_NAME}_$variant.png"
     }.toTypedArray()
 
-    val custom by stringOption(
+    val custom by folderOption(
         key = "custom",
         title = "Custom header logo",
         description = """
@@ -55,7 +54,7 @@ internal fun baseChangeHeaderPatch(
 
             Required dimensions:
             ${targetResourceDirectoryNames.map { (dpi, dim) -> "- $dpi: $dim" }.joinToString("\n")}
-        """.trimIndentMultiline()
+        """
     )
 
     block()

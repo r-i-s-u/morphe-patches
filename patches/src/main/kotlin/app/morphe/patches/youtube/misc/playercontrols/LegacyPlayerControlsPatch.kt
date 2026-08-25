@@ -21,11 +21,15 @@ import app.morphe.patcher.util.Document
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod
 import app.morphe.patches.all.misc.resources.resourceMappingPatch
 import app.morphe.patches.shared.misc.settings.preference.SwitchPreference
+import app.morphe.patches.youtube.misc.addon.EXTENSION_ADD_ON_API_CLASS_DESCRIPTOR
+import app.morphe.patches.youtube.misc.addon.LEGACY_BUTTON_SLOTS_RESOURCE_DIRECTORY
 import app.morphe.patches.youtube.misc.extension.sharedExtensionPatch
 import app.morphe.patches.youtube.misc.playservice.is_20_28_or_greater
 import app.morphe.patches.youtube.misc.playservice.is_20_30_or_greater
 import app.morphe.patches.youtube.misc.playservice.is_20_31_or_greater
 import app.morphe.patches.youtube.misc.playservice.is_20_40_or_greater
+import app.morphe.patches.youtube.misc.playservice.is_21_08_or_greater
+import app.morphe.patches.youtube.misc.playservice.is_21_15_or_greater
 import app.morphe.patches.youtube.misc.playservice.versionCheckPatch
 import app.morphe.patches.youtube.misc.settings.PreferenceScreen
 import app.morphe.patches.youtube.misc.settings.settingsPatch
@@ -35,7 +39,6 @@ import app.morphe.util.findElementByAttributeValueOrThrow
 import app.morphe.util.findFreeRegister
 import app.morphe.util.inputStreamFromBundledResource
 import app.morphe.util.insertLiteralOverride
-import app.morphe.util.returnEarly
 import com.android.tools.smali.dexlib2.iface.instruction.OneRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import org.w3c.dom.Node
@@ -161,6 +164,9 @@ internal val legacyPlayerControlsResourcePatch = resourcePatch {
 
             sourceDocument.close()
         }
+
+        // Button slots of add-on patch bundles, which cannot add a button of their own.
+        addLegacyBottomControl(LEGACY_BUTTON_SLOTS_RESOURCE_DIRECTORY)
     }
 
     finalize {
@@ -187,7 +193,8 @@ internal val legacyPlayerControlsResourcePatch = resourcePatch {
 internal fun initializeTopControl(descriptor: String) {
     inflateTopControlMethodRef.get()!!.addInstruction(
         inflateTopControlInsertIndex++,
-        "invoke-static { v$inflateTopControlRegister }, $descriptor->initializeLegacyButton(Landroid/view/View;)V",
+        "invoke-static { v$inflateTopControlRegister }, $descriptor->" +
+                "initializeLegacyButton(Landroid/view/View;)V",
     )
 }
 
@@ -198,35 +205,8 @@ internal fun initializeTopControl(descriptor: String) {
 fun initializeLegacyBottomControl(descriptor: String) {
     inflateBottomControlMethodRef.get()!!.addInstruction(
         inflateBottomControlInsertIndex++,
-        "invoke-static { v$inflateBottomControlRegister }, $descriptor->initializeLegacyButton(Landroid/view/View;)V",
-    )
-}
-
-/**
- * Injects the code to change the visibility of controls.
- * @param descriptor The descriptor of the method which should be called.
- */
-fun injectVisibilityCheckCall(descriptor: String) {
-    if (!visibilityImmediateCallbacksExistModified) {
-        visibilityImmediateCallbacksExistModified = true
-        visibilityImmediateCallbacksExistMethodRef.get()!!.returnEarly(true)
-    }
-
-    visibilityMethodRef.get()!!.addInstruction(
-        visibilityInsertIndex++,
-        "invoke-static { p1 , p2 }, $descriptor->setVisibility(ZZ)V",
-    )
-
-    visibilityImmediateMethodRef.get()!!.addInstruction(
-        visibilityImmediateInsertIndex++,
-        "invoke-static { p0 }, $descriptor->setVisibilityImmediate(Z)V",
-    )
-
-    // Patch works without this hook, but it is needed to use the correct fade out animation
-    // duration when tapping the overlay to dismiss.
-    visibilityNegatedImmediateMethodRef.get()!!.addInstruction(
-        visibilityNegatedImmediateInsertIndex++,
-        "invoke-static { }, $descriptor->setVisibilityNegatedImmediate()V",
+        "invoke-static { v$inflateBottomControlRegister }, $descriptor->" +
+                "initializeLegacyButton(Landroid/view/View;)V",
     )
 }
 
@@ -239,18 +219,6 @@ private var inflateTopControlRegister = -1
 private lateinit var inflateBottomControlMethodRef : WeakReference<MutableMethod>
 private var inflateBottomControlInsertIndex = -1
 private var inflateBottomControlRegister = -1
-
-private lateinit var visibilityImmediateCallbacksExistMethodRef : WeakReference<MutableMethod>
-private var visibilityImmediateCallbacksExistModified = false
-
-private lateinit var visibilityMethodRef : WeakReference<MutableMethod>
-private var visibilityInsertIndex = 0
-
-private lateinit var visibilityImmediateMethodRef : WeakReference<MutableMethod>
-private var visibilityImmediateInsertIndex = 0
-
-private lateinit var visibilityNegatedImmediateMethodRef : WeakReference<MutableMethod>
-private var visibilityNegatedImmediateInsertIndex = 0
 
 val legacyPlayerControlsPatch = bytecodePatch(
     description = "Manages the code for the player controls of the YouTube player.",
@@ -271,61 +239,30 @@ val legacyPlayerControlsPatch = bytecodePatch(
             )
         }
 
-        PlayerBottomControlsInflateFingerprint.let {
-            it.method.apply {
-                inflateBottomControlMethodRef = WeakReference(this)
-
-                val inflateReturnObjectIndex = it.instructionMatches.last().index
-                inflateBottomControlRegister = getInstruction<OneRegisterInstruction>(inflateReturnObjectIndex).registerA
-                inflateBottomControlInsertIndex = inflateReturnObjectIndex + 1
+        // Override flags that interfere with old player icons override.
+        arrayOf(
+            PlayerControlsModernAccessibilityFeatureFlagFingerprint to is_21_08_or_greater,
+            PlayerCommentTeaserFeatureFlagFingerprint to is_21_15_or_greater,
+            RecycleViewScrollingFlagFingerprint to is_21_15_or_greater
+        ).forEach { (fingerprint, applyChanges) ->
+            if (applyChanges) {
+                fingerprint.matchAll().forEach {
+                    it.method.insertLiteralOverride(
+                        it.instructionMatches.first().index,
+                        "$EXTENSION_CLASS->" +
+                                "allowModernPlayerLayoutFlags(Z)Z"
+                    )
+                }
             }
-        }
-
-        PlayerTopControlsInflateFingerprint.let {
-            it.method.apply {
-                inflateTopControlMethodRef = WeakReference(this)
-
-                val inflateReturnObjectIndex = it.instructionMatches.last().index
-                inflateTopControlRegister = getInstruction<OneRegisterInstruction>(inflateReturnObjectIndex).registerA
-                inflateTopControlInsertIndex = inflateReturnObjectIndex + 1
-            }
-        }
-
-        visibilityMethodRef = WeakReference(ControlsOverlayVisibilityFingerprint.method)
-
-        // Hook the fullscreen close button. Used to fix visibility
-        // when seeking and other situations.
-        OverlayViewInflateFingerprint.let {
-            it.method.apply {
-                val index = it.instructionMatches.last().index
-                val register = getInstruction<OneRegisterInstruction>(index).registerA
-
-                // Must insert at cast because hide fullscreen buttons hooks after,
-                // and for legacy buttons it returns early.
-                addInstruction(
-                    index,
-                    "invoke-static { v$register }, " +
-                            "$EXTENSION_CLASS->setFullscreenCloseButton(Landroid/view/View;)V",
-                )
-            }
-        }
-
-        visibilityImmediateCallbacksExistMethodRef = WeakReference(
-            PlayerControlsExtensionHookListenersExistFingerprint.method
-        )
-        visibilityImmediateMethodRef = WeakReference(PlayerControlsExtensionHookFingerprint.method)
-
-        MotionEventFingerprint.let {
-            visibilityNegatedImmediateMethodRef = WeakReference(it.method)
-            visibilityNegatedImmediateInsertIndex = it.instructionMatches.first().index + 1
         }
 
         fun overrideExploderLayout(fingerprint: Fingerprint) {
-            fingerprint.let {
+            fingerprint.matchAll().forEach {
+                // 21.30+ inlines the flag lookup and must patch ~6 places.
                 it.method.insertLiteralOverride(
                     it.instructionMatches.first().index,
                     "$EXTENSION_CLASS->" +
-                            "usePlayerBottomControlsExploderLayout(Z)Z",
+                            "usePlayerBottomControlsExploderLayout(Z)Z"
                 )
             }
         }
@@ -384,5 +321,30 @@ val legacyPlayerControlsPatch = bytecodePatch(
                 }
             }
         }
+
+        // Must get methods after overriding flags,
+        // since flag overrides can add instructions and break the indexes used here.
+        PlayerBottomControlsInflateFingerprint.let {
+            it.method.apply {
+                inflateBottomControlMethodRef = WeakReference(this)
+
+                val inflateReturnObjectIndex = it.instructionMatches.last().index
+                inflateBottomControlRegister = getInstruction<OneRegisterInstruction>(inflateReturnObjectIndex).registerA
+                inflateBottomControlInsertIndex = inflateReturnObjectIndex + 1
+            }
+        }
+
+        PlayerTopControlsInflateFingerprint.let {
+            it.method.apply {
+                inflateTopControlMethodRef = WeakReference(this)
+
+                val inflateReturnObjectIndex = it.instructionMatches.last().index
+                inflateTopControlRegister = getInstruction<OneRegisterInstruction>(inflateReturnObjectIndex).registerA
+                inflateTopControlInsertIndex = inflateReturnObjectIndex + 1
+            }
+        }
+
+        // Buttons of add-on patch bundles, which cannot add a button of their own.
+        initializeLegacyBottomControl(EXTENSION_ADD_ON_API_CLASS_DESCRIPTOR)
     }
 }

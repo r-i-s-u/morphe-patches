@@ -1,7 +1,16 @@
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
+
 package app.morphe.extension.shared.settings.preference;
 
 import static app.morphe.extension.shared.StringRef.str;
-import static app.morphe.extension.shared.ResourceUtils.getIdentifierOrThrow;
 
 import android.annotation.SuppressLint;
 import android.app.Dialog;
@@ -39,11 +48,12 @@ import java.util.TreeSet;
 
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.ResourceType;
+import app.morphe.extension.shared.ResourceUtils;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.patches.EnableDebuggingPatch;
 import app.morphe.extension.shared.settings.BaseSettings;
 import app.morphe.extension.shared.settings.SharedYouTubeSettings;
-import app.morphe.extension.shared.settings.preference.AbstractPreferenceFragment;
+import app.morphe.extension.shared.theme.ThemeUtils;
 import app.morphe.extension.shared.ui.CustomDialog;
 import app.morphe.extension.shared.ui.Dim;
 
@@ -55,19 +65,19 @@ import app.morphe.extension.shared.ui.Dim;
 public class FeatureFlagsManagerPreference extends Preference {
 
     private static final int DRAWABLE_MORPHE_SETTINGS_SELECT_ALL =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_select_all");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_select_all");
     private static final int DRAWABLE_MORPHE_SETTINGS_DESELECT_ALL =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_deselect_all");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_deselect_all");
     private static final int DRAWABLE_MORPHE_SETTINGS_COPY_ALL =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_copy_all");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_copy_all");
     private static final int DRAWABLE_MORPHE_SETTINGS_ARROW_RIGHT_ONE =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_right_one");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_right_one");
     private static final int DRAWABLE_MORPHE_SETTINGS_ARROW_RIGHT_DOUBLE =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_right_double");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_right_double");
     private static final int DRAWABLE_MORPHE_SETTINGS_ARROW_LEFT_ONE =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_left_one");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_left_one");
     private static final int DRAWABLE_MORPHE_SETTINGS_ARROW_LEFT_DOUBLE =
-            getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_left_double");
+            ResourceUtils.getIdentifierOrThrow(ResourceType.DRAWABLE, "morphe_settings_arrow_left_double");
 
     /**
      * Flags to hide from the UI.
@@ -252,7 +262,7 @@ public class FeatureFlagsManagerPreference extends Preference {
         TextView textview = new TextView(context);
         textview.setTag(tag);
         textview.setTextSize(16);
-        textview.setTextColor(Utils.getAppForegroundColor());
+        textview.setTextColor(ThemeUtils.getAppForegroundColor());
         textview.setGravity(Gravity.CENTER);
 
         return textview;
@@ -276,7 +286,7 @@ public class FeatureFlagsManagerPreference extends Preference {
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         ShapeDrawable background = new ShapeDrawable(new RoundRectShape(
                 Dim.roundedCorners(10), null, null));
-        background.getPaint().setColor(Utils.getEditTextBackground());
+        background.getPaint().setColor(ThemeUtils.getEditTextBackground());
         listView.setPadding(0, Dim.dp4, 0, Dim.dp4);
         listView.setBackground(background);
         listView.setOverScrollMode(View.OVER_SCROLL_NEVER);
@@ -603,6 +613,7 @@ public class FeatureFlagsManagerPreference extends Preference {
     private void saveFlags(TreeSet<Long> blockedFlags) {
         StringBuilder flagsString = new StringBuilder();
         for (Long flag : blockedFlags) {
+            //noinspection SizeReplaceableByIsEmpty
             if (flagsString.length() > 0) {
                 flagsString.append("\n");
             }

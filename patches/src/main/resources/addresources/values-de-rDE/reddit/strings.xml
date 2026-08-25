@@ -2,7 +2,7 @@
 <!--
 
     Strings with new lines must be raw strings where they're wrapped in quotes and new lines are not encoded.
-    Raw strings still requires escaping embedded double quotes but escaping embedded single quotes is optional.
+    Raw strings still require escaping embedded double quotes but escaping embedded single quotes is optional.
 
     Raw strings are required because Crowdin AI translations regularly gets confused and
     replace \n with an encoded new line character.
@@ -16,6 +16,8 @@ Second \"item\" text"</string>
 
 -->
 <resources>
+  <string name="reddit_privacy_policy">Datenschutzerklärung von Reddit</string>
+  <string name="morphe_google_signin_not_available_toast">Google Login nicht verfügbar. Verwende die E-Mail-Adresse für die Anmeldung.</string>
   <string name="morphe_screen_ads_title">Anzeigen</string>
   <string name="morphe_hide_post_ads_title">Feed-Anzeigen ausblenden</string>
   <string name="morphe_hide_comment_ads_title">Kommentar-Anzeigen ausblenden</string>
@@ -32,9 +34,19 @@ Second \"item\" text"</string>
   <string name="morphe_hide_about_shelf_title">\"Über\"-Bereich ausblenden</string>
   <string name="morphe_hide_resources_shelf_title">\"Ressourcen\"-Bereich ausblenden</string>
   <string name="morphe_screen_layout_title">Layout</string>
+  <string name="morphe_custom_font_title">Benutzerspezifische Schrift</string>
+  <string name="morphe_custom_font_summary">Laden Sie eine benutzerdefinierte TTF- oder OTF-Schriftdatei vom folgenden Pfad. Durch Aktivieren dieser Option wird auch die Option \"Standardschriftart erzwingen\" deaktiviert.</string>
+  <string name="morphe_custom_font_file_path_title">Benutzerspezifische Schriftdatei</string>
+  <string name="morphe_custom_font_file_path_summary">Tippe, um eine TTF- oder OTF-Schriftschriftdatei auszuwählen</string>
+  <string name="morphe_custom_font_selected_font">Ausgewählte Schriftart – %s</string>
+  <string name="morphe_custom_font_pick_file_first">Wählen Sie zuerst eine benutzerdefinierte Schriftdatei aus.</string>
+  <string name="morphe_custom_font_invalid_file">Bitte wählen Sie eine .ttf- oder .otf-Schriftdatei aus.</string>
+  <string name="morphe_custom_font_failed_to_load">Fehler beim Laden der benutzerdefinierten Schriftart. Bitte wählen Sie eine andere Datei.</string>
   <string name="morphe_disable_modern_home_title">Modernes \"Home\" deaktivieren</string>
   <string name="morphe_disable_screenshot_popup_title">Screenshot-Pop-up deaktivieren</string>
   <string name="morphe_disable_screenshot_popup_summary">Deaktiviert das Pop-up bei einem Screenshot</string>
+  <string name="morphe_force_system_font_title">Systemschrift erzwingen</string>
+  <string name="morphe_force_system_font_summary">Verwenden Sie die Standardschriftart des Geräts anstelle von Reddit Sans oder Roboto. Durch Aktivieren dieser Option wird auch die benutzerdefinierte Schriftart deaktiviert.</string>
   <string name="morphe_hide_ask_button_title">Frage-Button ausblenden</string>
   <string name="morphe_hide_ask_button_summary">Blendet den Frage-Button in der Suchleiste aus</string>
   <string name="morphe_hide_communities_shelf_title">Communities-Bereich ausblenden</string>

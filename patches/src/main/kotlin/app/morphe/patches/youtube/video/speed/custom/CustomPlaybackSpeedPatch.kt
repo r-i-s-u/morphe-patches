@@ -1,6 +1,7 @@
 /*
  * Copyright 2026 Morphe.
  * https://github.com/MorpheApp/morphe-patches
+ * https://github.com/MorpheApp/morphe-patches/pull/2282
  *
  * Original hard forked code:
  * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
@@ -17,6 +18,7 @@ import app.morphe.patcher.extensions.InstructionExtensions.getInstruction
 import app.morphe.patcher.extensions.InstructionExtensions.instructions
 import app.morphe.patcher.extensions.InstructionExtensions.replaceInstruction
 import app.morphe.patcher.patch.bytecodePatch
+import app.morphe.patcher.patch.resourcePatch
 import app.morphe.patcher.util.proxy.mutableTypes.MutableField
 import app.morphe.patcher.util.proxy.mutableTypes.MutableField.Companion.toMutable
 import app.morphe.patcher.util.proxy.mutableTypes.MutableMethod.Companion.toMutable
@@ -25,7 +27,10 @@ import app.morphe.patches.shared.misc.litho.filter.addLithoFilter
 import app.morphe.patches.shared.misc.settings.preference.InputType
 import app.morphe.patches.shared.misc.settings.preference.SwitchPreference
 import app.morphe.patches.shared.misc.settings.preference.TextPreference
+import app.morphe.patches.shared.misc.textcomponent.hookSpannableString
+import app.morphe.patches.shared.misc.textcomponent.textComponentPatch
 import app.morphe.patches.youtube.misc.extension.sharedExtensionPatch
+import app.morphe.patches.youtube.misc.litho.context.conversionContextPatch
 import app.morphe.patches.youtube.misc.litho.filter.lithoFilterPatch
 import app.morphe.patches.youtube.misc.playservice.is_20_34_or_greater
 import app.morphe.patches.youtube.misc.playservice.is_21_02_or_greater
@@ -34,9 +39,14 @@ import app.morphe.patches.youtube.misc.playservice.versionCheckPatch
 import app.morphe.patches.youtube.misc.recyclerviewtree.addRecyclerViewTreeHook
 import app.morphe.patches.youtube.misc.recyclerviewtree.recyclerViewTreeHookPatch
 import app.morphe.patches.youtube.misc.settings.settingsPatch
+import app.morphe.patches.youtube.shared.InitializePlaybackSpeedValuesFingerprint
 import app.morphe.patches.youtube.shared.PlaybackSpeedOnItemClickParentFingerprint
+import app.morphe.patches.youtube.shared.SpeedLimiterFingerprint
+import app.morphe.patches.youtube.shared.SpeedLimiterParentFingerprint
 import app.morphe.patches.youtube.video.speed.settingsMenuVideoSpeedGroup
+import app.morphe.util.ResourceGroup
 import app.morphe.util.addInstructionsAtControlFlowLabel
+import app.morphe.util.copyResources
 import app.morphe.util.getReference
 import app.morphe.util.indexOfFirstLiteralInstructionOrThrow
 import app.morphe.util.insertLiteralOverride
@@ -55,6 +65,21 @@ internal const val EXTENSION_CLASS =
 private const val EXTENSION_FILTER =
     "Lapp/morphe/extension/youtube/patches/components/PlaybackSpeedMenuFilter;"
 
+private val customPlaybackSpeedResourcePatch = resourcePatch {
+    execute {
+        copyResources(
+            "speed",
+            ResourceGroup(
+                "drawable",
+                "morphe_ic_link.xml",
+                "morphe_ic_link_off.xml",
+                "morphe_ic_music_note.xml",
+                "morphe_ic_slow_motion_video.xml"
+            )
+        )
+    }
+}
+
 internal val customPlaybackSpeedPatch = bytecodePatch(
     description = "Adds custom playback speed options.",
 ) {
@@ -63,7 +88,10 @@ internal val customPlaybackSpeedPatch = bytecodePatch(
         settingsPatch,
         lithoFilterPatch,
         versionCheckPatch,
+        conversionContextPatch,
+        textComponentPatch,
         recyclerViewTreeHookPatch,
+        customPlaybackSpeedResourcePatch,
         resourceMappingPatch
     )
 
@@ -72,6 +100,8 @@ internal val customPlaybackSpeedPatch = bytecodePatch(
             listOf(
                 SwitchPreference("morphe_custom_speed_menu"),
                 SwitchPreference("morphe_restore_old_speed_menu"),
+                SwitchPreference("morphe_enable_playback_audio_pitch_controls"),
+                SwitchPreference("morphe_playback_audio_time_stretching", summary = true),
                 TextPreference(
                     "morphe_custom_playback_speeds",
                     inputType = InputType.TEXT_MULTI_LINE
@@ -84,16 +114,21 @@ internal val customPlaybackSpeedPatch = bytecodePatch(
         )
 
         // Override the min/max speeds that can be used.
-        (if (is_20_34_or_greater) SpeedLimiterFingerprint else SpeedLimiterLegacyFingerprint).method.apply {
-            val limitMinIndex = indexOfFirstLiteralInstructionOrThrow(0.25f)
-            // Older unsupported targets use 2.0f and not 4.0f
-            val limitMaxIndex = indexOfFirstLiteralInstructionOrThrow(4.0f)
+        setOf(
+            SpeedLimiterFingerprint,
+            SpeedLimiterParentFingerprint
+        ).forEach { fingerprint ->
+            fingerprint.method.apply {
+                val limitMinIndex = indexOfFirstLiteralInstructionOrThrow(0.25f)
+                // Older unsupported targets use 2.0f and not 4.0f
+                val limitMaxIndex = indexOfFirstLiteralInstructionOrThrow(4.0f)
 
-            val limitMinRegister = getInstruction<OneRegisterInstruction>(limitMinIndex).registerA
-            val limitMaxRegister = getInstruction<OneRegisterInstruction>(limitMaxIndex).registerA
+                val limitMinRegister = getInstruction<OneRegisterInstruction>(limitMinIndex).registerA
+                val limitMaxRegister = getInstruction<OneRegisterInstruction>(limitMaxIndex).registerA
 
-            replaceInstruction(limitMinIndex, "const/high16 v$limitMinRegister, 0.0f")
-            replaceInstruction(limitMaxIndex, "const/high16 v$limitMaxRegister, 8.0f")
+                replaceInstruction(limitMinIndex, "const/high16 v$limitMinRegister, 0.0f")
+                replaceInstruction(limitMaxIndex, "const/high16 v$limitMaxRegister, 8.0f")
+            }
         }
 
         // Turn off client side flag that use server provided min/max speeds.
@@ -105,13 +140,14 @@ internal val customPlaybackSpeedPatch = bytecodePatch(
 
         // Replace the speeds float array with custom speeds.
         SpeedArrayGeneratorFingerprint.let {
-            val matches = it.instructionMatches
             it.method.apply {
+                val matches = it.instructionMatches
                 val playbackSpeedsArrayType = "$EXTENSION_CLASS->customPlaybackSpeeds:[F"
-                // Apply changes from last index to first to preserve indexes.
 
+                // Apply changes from last index to first to preserve indexes.
                 val originalArrayFetchIndex = matches[5].index
-                val originalArrayFetchDestination = matches[5].getInstruction<OneRegisterInstruction>().registerA
+                val originalArrayFetchDestination =
+                    getInstruction<OneRegisterInstruction>(originalArrayFetchIndex).registerA
                 replaceInstruction(
                     originalArrayFetchIndex,
                     "sget-object v$originalArrayFetchDestination, $playbackSpeedsArrayType"
@@ -337,6 +373,12 @@ internal val customPlaybackSpeedPatch = bytecodePatch(
                 )
             }
         }
+
+        hookSpannableString(
+            classDescriptor = EXTENSION_CLASS,
+            methodName = "onSeekEduOverlayLoaded",
+            overrideSpan = true
+        )
 
         // endregion
     }

@@ -1,6 +1,14 @@
-package app.morphe.extension.shared.settings.preference;
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
 
-import static app.morphe.extension.shared.ResourceUtils.getIdentifierOrThrow;
+package app.morphe.extension.shared.settings.preference;
 
 import android.app.Dialog;
 import android.content.Context;
@@ -21,7 +29,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import app.morphe.extension.shared.ResourceType;
+import app.morphe.extension.shared.ResourceUtils;
 import app.morphe.extension.shared.Utils;
+import app.morphe.extension.shared.theme.ThemeUtils;
 import app.morphe.extension.shared.ui.CustomDialog;
 
 /**
@@ -31,17 +41,17 @@ import app.morphe.extension.shared.ui.CustomDialog;
 @SuppressWarnings({"unused", "deprecation"})
 public class CustomDialogListPreference extends ListPreference {
 
-    public static final int ID_MORPHE_CHECK_ICON = getIdentifierOrThrow(
+    public static final int ID_MORPHE_CHECK_ICON = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "morphe_check_icon");
-    public static final int ID_MORPHE_CHECK_ICON_PLACEHOLDER = getIdentifierOrThrow(
+    public static final int ID_MORPHE_CHECK_ICON_PLACEHOLDER = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "morphe_check_icon_placeholder");
-    public static final int ID_MORPHE_ITEM_TEXT = getIdentifierOrThrow(
+    public static final int ID_MORPHE_ITEM_TEXT = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "morphe_item_text");
-    public static final int LAYOUT_MORPHE_CUSTOM_LIST_ITEM_CHECKED = getIdentifierOrThrow(
+    public static final int LAYOUT_MORPHE_CUSTOM_LIST_ITEM_CHECKED = ResourceUtils.getIdentifierOrThrow(
             ResourceType.LAYOUT, "morphe_custom_list_item_checked");
-    public static final int DRAWABLE_CHECKMARK = getIdentifierOrThrow(
+    public static final int DRAWABLE_CHECKMARK = ResourceUtils.getIdentifierOrThrow(
             ResourceType.DRAWABLE, "morphe_settings_custom_checkmark");
-    public static final int DRAWABLE_CHECKMARK_BOLD = getIdentifierOrThrow(
+    public static final int DRAWABLE_CHECKMARK_BOLD = ResourceUtils.getIdentifierOrThrow(
             ResourceType.DRAWABLE, "morphe_settings_custom_checkmark_bold");
 
     private String staticSummary = null;
@@ -144,13 +154,13 @@ public class CustomDialogListPreference extends ListPreference {
 
             CharSequence itemText = getItem(position);
             holder.itemText.setText(itemText);
-            holder.itemText.setTextColor(Utils.getAppForegroundColor());
+            holder.itemText.setTextColor(ThemeUtils.getAppForegroundColor());
 
             // Show or hide checkmark and placeholder.
             String currentValue = entryValues[position].toString();
             boolean isSelected = currentValue.equals(selectedValue);
             holder.checkIcon.setVisibility(isSelected ? View.VISIBLE : View.GONE);
-            holder.checkIcon.setColorFilter(Utils.getAppForegroundColor());
+            holder.checkIcon.setColorFilter(ThemeUtils.getAppForegroundColor());
             holder.placeholder.setVisibility(isSelected ? View.GONE : View.VISIBLE);
 
             return view;
@@ -175,6 +185,14 @@ public class CustomDialogListPreference extends ListPreference {
 
     public CustomDialogListPreference(Context context) {
         super(context);
+    }
+
+    /**
+     * Opens the selection dialog, as if the preference row itself was tapped.
+     * Allows another preference to present this list on its behalf.
+     */
+    public void showSelectionDialog() {
+        showDialog(null);
     }
 
     @Override

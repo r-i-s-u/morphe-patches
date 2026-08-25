@@ -4,6 +4,7 @@
  *
  * See the included NOTICE file for GPLv3 Section 7 terms that apply to this code.
  */
+
 package app.morphe.patches.reddit.layout.ask
 
 import app.morphe.patcher.extensions.InstructionExtensions.addInstructionsWithLabels
@@ -32,7 +33,6 @@ val hideAskButtonPatch = bytecodePatch(
     )
 
     execute {
-
         hookFeatureFlag("$EXTENSION_CLASS->hideAskButton")
 
         AskButtonComposableFingerprint.method.addInstructionsWithLabels(

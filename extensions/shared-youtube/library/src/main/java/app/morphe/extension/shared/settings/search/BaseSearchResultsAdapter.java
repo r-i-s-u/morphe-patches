@@ -1,6 +1,14 @@
-package app.morphe.extension.shared.settings.search;
+/*
+ * Copyright 2026 Morphe.
+ * https://github.com/MorpheApp/morphe-patches
+ *
+ * Original hard forked code:
+ * https://github.com/ReVanced/revanced-patches/commit/724e6d61b2ecd868c1a9a37d465a688e83a74799
+ *
+ * See the included NOTICE file for GPLv3 Section 7 terms that apply to Morphe contributions.
+ */
 
-import static app.morphe.extension.shared.ResourceUtils.getIdentifierOrThrow;
+package app.morphe.extension.shared.settings.search;
 
 import android.animation.AnimatorSet;
 import android.animation.ArgbEvaluator;
@@ -34,10 +42,12 @@ import java.util.Locale;
 
 import app.morphe.extension.shared.Logger;
 import app.morphe.extension.shared.ResourceType;
+import app.morphe.extension.shared.ResourceUtils;
 import app.morphe.extension.shared.Utils;
 import app.morphe.extension.shared.settings.preference.ColorPickerPreference;
 import app.morphe.extension.shared.settings.preference.CustomDialogListPreference;
 import app.morphe.extension.shared.settings.preference.URLLinkPreference;
+import app.morphe.extension.shared.theme.ThemeUtils;
 import app.morphe.extension.shared.ui.ColorDot;
 
 /**
@@ -54,15 +64,15 @@ public abstract class BaseSearchResultsAdapter extends ArrayAdapter<BaseSearchRe
     protected static final int BLINK_DURATION = 400;
     protected static final int PAUSE_BETWEEN_BLINKS = 100;
 
-    protected static final int ID_PREFERENCE_TITLE = getIdentifierOrThrow(
+    protected static final int ID_PREFERENCE_TITLE = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "preference_title");
-    protected static final int ID_PREFERENCE_SUMMARY = getIdentifierOrThrow(
+    protected static final int ID_PREFERENCE_SUMMARY = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "preference_summary");
-    protected static final int ID_PREFERENCE_PATH = getIdentifierOrThrow(
+    protected static final int ID_PREFERENCE_PATH = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "preference_path");
-    protected static final int ID_PREFERENCE_SWITCH = getIdentifierOrThrow(
+    protected static final int ID_PREFERENCE_SWITCH = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "preference_switch");
-    protected static final int ID_PREFERENCE_COLOR_DOT = getIdentifierOrThrow(
+    protected static final int ID_PREFERENCE_COLOR_DOT = ResourceUtils.getIdentifierOrThrow(
             ResourceType.ID, "preference_color_dot");
 
     protected static class RegularViewHolder {
@@ -274,7 +284,7 @@ public abstract class BaseSearchResultsAdapter extends ArrayAdapter<BaseSearchRe
         holder.titleView.setText(item.highlightedTitle);
         holder.summaryView.setText(item.highlightedSummary);
         holder.summaryView.setVisibility(TextUtils.isEmpty(item.highlightedSummary) ? View.GONE : View.VISIBLE);
-        holder.iconView.setImageResource(BaseSearchViewController.getSearchIcon());
+        holder.iconView.setImageDrawable(BaseSearchViewController.getSearchIconDrawable());
     }
 
     /**
@@ -521,7 +531,7 @@ public abstract class BaseSearchResultsAdapter extends ArrayAdapter<BaseSearchRe
         if (currentAnimator != null && currentAnimator.isRunning()) {
             currentAnimator.cancel();
         }
-        final int startColor = Utils.getAppBackgroundColor();
+        final int startColor = ThemeUtils.getAppBackgroundColor();
         final int highlightColor = Utils.adjustColorBrightness(
                 startColor,
                 Utils.isDarkModeEnabled() ? 1.25f : 0.8f

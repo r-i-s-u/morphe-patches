@@ -7,14 +7,13 @@
 
 package app.morphe.extension.youtube.patches.components;
 
-import static app.morphe.extension.youtube.patches.LayoutReloadObserverPatch.isActionBarVisible;
-
 import app.morphe.extension.shared.patches.components.BufferAsciiStrings;
 import app.morphe.extension.shared.patches.components.ByteArrayFilterGroup;
 import app.morphe.extension.shared.patches.components.ByteArrayFilterGroupList;
 import app.morphe.extension.shared.patches.components.ContextInterface;
 import app.morphe.extension.shared.patches.components.Filter;
 import app.morphe.extension.shared.patches.components.StringFilterGroup;
+import app.morphe.extension.youtube.patches.LayoutReloadObserverPatch;
 import app.morphe.extension.youtube.settings.Settings;
 import app.morphe.extension.youtube.shared.EngagementPanel;
 import app.morphe.extension.youtube.shared.NavigationBar;
@@ -28,7 +27,11 @@ public final class HorizontalShelvesFilter extends Filter {
     private final ByteArrayFilterGroupList generalBuffers = new ByteArrayFilterGroupList();
 
     public HorizontalShelvesFilter() {
-        StringFilterGroup horizontalShelves = new StringFilterGroup(null, "horizontal_shelf.e");
+        StringFilterGroup horizontalShelves = new StringFilterGroup(
+                null,
+                "horizontal_shelf.e"
+        );
+
         addPathCallbacks(horizontalShelves);
 
         descriptionBuffers.addAll(
@@ -74,13 +77,6 @@ public final class HorizontalShelvesFilter extends Filter {
         );
     }
 
-    private boolean isPlayerOrDescription() {
-        return EngagementPanel.isDescription()
-                || PlayerType.getCurrent().isMaximizedOrFullscreen()
-                || isActionBarVisible.get()
-                || ShortsPlayerState.isOpen();
-    }
-
     private boolean hideShelves(ContextInterface contextInterface) {
         if (!Settings.HIDE_HORIZONTAL_SHELVES.get() || isPlayerOrDescription()) {
             return false;
@@ -89,6 +85,13 @@ public final class HorizontalShelvesFilter extends Filter {
                 || NavigationBar.isSearchBarActive()
                 || NavigationBar.isBackButtonVisible()
                 || NavigationButton.getSelectedNavigationButton() != NavigationButton.LIBRARY;
+    }
+
+    private boolean isPlayerOrDescription() {
+        return EngagementPanel.isDescription()
+                || PlayerType.getCurrent().isMaximizedOrFullscreen()
+                || LayoutReloadObserverPatch.isActionBarVisible.get()
+                || ShortsPlayerState.isOpen();
     }
 
     @Override
@@ -108,7 +111,9 @@ public final class HorizontalShelvesFilter extends Filter {
             return true;
         }
         if (descriptionBuffers.check(buffer).isFiltered()) {
-            return isPlayerOrDescription();
+            if (isPlayerOrDescription()) {
+                return true;
+            }
         }
         return hideShelves(contextInterface);
     }
